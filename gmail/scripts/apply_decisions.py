@@ -19,6 +19,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(GMAIL_ROOT))
 
 from common.classification.store import DecisionStore  # noqa: E402
+from common.csv_safe import csv_safe_rows  # noqa: E402
 from common.run_output import resolve_write_dir, snapshot_decisions  # noqa: E402
 from participant_config import load_participant_config  # noqa: E402
 
@@ -154,7 +155,7 @@ def main() -> None:
             "subject", "company", "position_title", "recruiter_type", "reason", "other_party",
         ])
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(csv_safe_rows(rows))
 
     summary_rows = []
     for tid, decision in decisions.items():
@@ -184,7 +185,7 @@ def main() -> None:
         ]
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
-        writer.writerows(summary_rows)
+        writer.writerows(csv_safe_rows(summary_rows))
 
     kept_threads = sum(1 for d in decisions.values() if d.include)
     latest = args.output_dir / "latest"

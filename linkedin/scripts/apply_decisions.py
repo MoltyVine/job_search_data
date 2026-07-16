@@ -16,6 +16,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(LINKEDIN_ROOT))
 
 from common.classification.store import DecisionStore  # noqa: E402
+from common.csv_safe import csv_safe_rows  # noqa: E402
 from common.run_output import resolve_write_dir, snapshot_decisions  # noqa: E402
 from messages_io import (  # noqa: E402
     COLUMNS,
@@ -138,7 +139,7 @@ def main() -> None:
     with filtered_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=filtered_fields)
         writer.writeheader()
-        writer.writerows(filtered_rows)
+        writer.writerows(csv_safe_rows(filtered_rows))
 
     summary_fields = [
         "Company",
@@ -155,7 +156,7 @@ def main() -> None:
     with summary_csv_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=summary_fields)
         writer.writeheader()
-        writer.writerows(summary_rows)
+        writer.writerows(csv_safe_rows(summary_rows))
 
     notable = [r for r in summary_rows if int(r["# Msgs"]) >= 6]
     lines = [

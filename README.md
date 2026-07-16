@@ -60,7 +60,9 @@ ollama pull llama3.1:8b
 
 With `classification.backend: auto` (default), pipelines use Ollama when reachable; otherwise they prompt to use the Cursor agent backend (or pass `--backend cursor`).
 
-**Privacy:** `config/participant.yaml` and raw exports are gitignored. Do not commit PII, takeout zips, `.mbox` files, LinkedIn archives, or `analysis/` / `output/` contents.
+Keep `classification.ollama.base_url` on loopback (`http://127.0.0.1:11434`) unless you intentionally send thread text to a remote host you trust.
+
+**Privacy:** `config/participant.yaml` and raw exports are gitignored. Do not commit PII, takeout zips, `.mbox` files, LinkedIn archives, or `analysis/` / `output/` contents. Classification sends conversation text to the configured LLM backend.
 
 ---
 
