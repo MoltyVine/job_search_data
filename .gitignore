@@ -1,0 +1,45 @@
+# Shared participant config (PII) — copy from participant.example.yaml
+config/participant.yaml
+
+# Gmail takeout / mail artifacts
+takeout-*/
+**/Takeout/
+*.mbox
+*.eml
+*.zip
+*_emails/
+*_emails_human/
+*_emails_job/
+*_conversations/
+classification_report.csv
+recruiter_conversations_report.csv
+
+# Takeout extracts: ignore unzipped folders; keep the placeholder README
+gmail/takeout_extracts/*/
+!gmail/takeout_extracts/README.md
+
+# Pipeline artifacts (use /* so README un-ignore works)
+gmail/analysis/*
+!gmail/analysis/README.md
+gmail/output/*
+!gmail/output/README.md
+
+# LinkedIn exports (large, personal)
+linkedin/data/
+
+# LinkedIn pipeline artifacts
+linkedin/analysis/*
+!linkedin/analysis/README.md
+linkedin/output/*
+!linkedin/output/README.md
+
+# Python / local env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# OS
+.DS_Store

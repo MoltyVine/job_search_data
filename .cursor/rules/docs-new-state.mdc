@@ -1,0 +1,14 @@
+---
+description: When editing docs or comments, present the new state — not before/after diffs
+alwaysApply: true
+---
+
+# Documentation and comments — new state only
+
+When creating or editing **documentation, READMEs, comments, or guides**:
+
+- Do **not** narrate or emphasize before/after diffs of the prose itself
+- Focus on the **current / new state** after the change
+- Prefer a short description of what the docs now say or how to use them, not a changelog of wording
+
+This applies to agent responses about doc work and to doc content (avoid “Previously… Now…” sections unless the user asks for a migration note).

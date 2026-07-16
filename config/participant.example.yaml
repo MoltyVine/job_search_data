@@ -1,0 +1,33 @@
+# Copy to participant.yaml and fill in for each person you process.
+# Shared across all data sources (gmail, linkedin, and future sources).
+#
+#   cp config/participant.example.yaml config/participant.yaml
+#
+# Defaults for search_window match the repo README if omitted.
+
+participant:
+  name: "Jane Doe"
+  first_name: "Jane"
+  last_name: "Doe"
+  search_window:
+    start: "2025-01-01"
+    end: "2026-01-01"
+
+# One block per data source — add new keys as sources are added.
+gmail:
+  my_emails:
+    - jane.doe@gmail.com
+
+linkedin:
+  display_name: "Jane Doe"   # must match messages.csv FROM when you send
+
+# Classification backend for Gmail + LinkedIn (local LLM or Cursor agent).
+classification:
+  backend: auto          # auto | ollama | cursor
+  ollama:
+    base_url: "http://127.0.0.1:11434"
+    model: "qwen2.5:14b"  # or llama3.1:8b
+
+# Future example (not implemented yet):
+# sms:
+#   phone_numbers: ["+1..."]
