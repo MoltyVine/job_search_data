@@ -1,37 +1,46 @@
 # Job Search Evidence Extraction
 
-Extract **recruiter / job-opportunity conversations** from Gmail and LinkedIn (and other sources as you add them).
+Extract **recruiter / job-opportunity conversations** from Gmail and LinkedIn.
 
-**One config. Multiple sources.** Set identity and date window once, then run each source workflow against the same settings.
+## Start here (recommended)
+
+1. Clone this repo and open it in Cursor.
+2. Invoke the **`job-search-extraction`** skill (e.g. “Use job-search-extraction to walk me through setup”).
+
+The skill interviews you for dates and identity, writes `config/participant.yaml`, guides Gmail labeling / Takeout and LinkedIn export, runs the pipelines, and points you at the summary outputs. You do not need to learn the repo layout first.
+
+Optional: install [Ollama](https://ollama.com), run `ollama serve`, and `ollama pull qwen2.5:14b` so classification can use a local LLM (`classification.backend: auto`).
+
+**Privacy:** Do not commit `config/participant.yaml`, takeouts, LinkedIn archives, or `analysis/` / `output/` contents (gitignored). Classification sends conversation text to the configured LLM backend — keep `classification.ollama.base_url` on loopback unless you trust a remote host.
 
 ---
 
 ## How it works
 
 ```
-config/participant.yaml          ← you fill this once
+config/participant.yaml          ← skill writes this (or you edit once)
         │
         ├─► gmail/     Takeout .mbox  → dump → classify → mbox + CSV
         ├─► linkedin/  messages.csv   → dump → classify → CSV + summary
         └─► (future)   other sources add a block to the same config file
 ```
 
-Classification (both sources): **local LLM via Ollama** when available, or **Cursor agent** handoff. Shared rules: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md).
-
 | Source | Guide | Deliverable |
 |--------|-------|-------------|
 | [Gmail](gmail/) | [Workflow](gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md) | `gmail/output/latest/` (mbox + audit/summary CSV; prior runs under `runs/`) |
 | [LinkedIn](linkedin/) | [Workflow](linkedin/docs/LINKEDIN_EXTRACTION_WORKFLOW.md) | `linkedin/output/latest/` (filtered CSVs + summary; prior runs under `runs/`) |
 
+Shared rules: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md). Project rule: [`.cursor/rules/job-search-extraction.mdc`](.cursor/rules/job-search-extraction.mdc).
+
 ---
 
-## 1. Configure (once)
+## Manual setup (optional)
+
+Use this if you prefer not to use the skill.
 
 ```bash
 cp config/participant.example.yaml config/participant.yaml
 ```
-
-Edit [`config/participant.yaml`](config/participant.example.yaml):
 
 | Section | Purpose |
 |---------|---------|
@@ -39,41 +48,13 @@ Edit [`config/participant.yaml`](config/participant.example.yaml):
 | `gmail:` | Your email addresses (`my_emails`) |
 | `linkedin:` | Display name as it appears in `messages.csv` `FROM` |
 | `classification:` | Backend `auto` / `ollama` / `cursor` + Ollama model |
-| *(future)* | New top-level key per source — pipelines ignore unknown keys |
 
-**Default search window** (used if omitted):
-
-| | Date |
-|--|------|
-| Start | `2025-01-01` |
-| End | `2026-01-01` |
-
-Gmail tip: `before:` is exclusive — for end `2026-01-01`, search with `before:2026/1/2`.
-
-### Local LLM (recommended)
-
-```bash
-# install from https://ollama.com — then:
-ollama serve
-ollama pull llama3.1:8b
-```
-
-With `classification.backend: auto` (default), pipelines use Ollama when reachable; otherwise they prompt to use the Cursor agent backend (or pass `--backend cursor`).
-
-Keep `classification.ollama.base_url` on loopback (`http://127.0.0.1:11434`) unless you intentionally send thread text to a remote host you trust.
-
-**Privacy:** `config/participant.yaml` and raw exports are gitignored. Do not commit PII, takeout zips, `.mbox` files, LinkedIn archives, or `analysis/` / `output/` contents. Classification sends conversation text to the configured LLM backend.
-
----
-
-## 2. Run sources
-
-Do either or both. Same config either way.
+**Default search window** (used if omitted): `2025-01-01` → `2026-01-01`. Gmail tip: `before:` is exclusive — for end `2026-01-01`, use `before:2026/1/2`.
 
 ### Gmail
 
 1. Follow [gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md](gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md) (label → Takeout).
-2. Process:
+2. Place unzipped Takeout under `gmail/takeout_extracts/`, then:
 
 ```bash
 cd gmail
@@ -81,8 +62,6 @@ pip install -r requirements.txt
 python3 run_gmail_pipeline.py
 # optional: --backend ollama|cursor   --all-dates
 ```
-
-Place unzipped Takeout folders in `gmail/takeout_extracts/`. With one folder, no path argument is needed.
 
 ### LinkedIn
 
@@ -115,20 +94,8 @@ job_search_data/
 ├── README.md
 ├── docs/CLASSIFICATION_CRITERIA.md
 ├── config/
-├── common/                   # shared config + classification (Ollama client)
+├── common/                   # shared config + classification
 ├── gmail/
 ├── linkedin/
-└── .cursor/skills/
+└── .cursor/skills/job-search-extraction/
 ```
-
----
-
-## Cursor skill
-
-| Skill | Use for |
-|-------|---------|
-| `job-search-extraction` | End-to-end setup: interview → config → Gmail/LinkedIn export → pipelines → outputs |
-
-Guided path: invoke **job-search-extraction** (writes `participant.yaml`, walks exports, runs pipelines). Detailed human guides remain under `gmail/docs/` and `linkedin/docs/`.
-
-Project rule: [`.cursor/rules/job-search-extraction.mdc`](.cursor/rules/job-search-extraction.mdc)
