@@ -13,14 +13,16 @@ Read the **full thread** for context.
 
 ## Core decision
 
-**Include only** when this is clearly a conversation with a **real person** (recruiter, hiring manager, referrer, or company employee) about a **specific job or position**.
+**Include only** when this is clearly a conversation with a **real person** (recruiter, hiring manager, referrer, or company employee) about **one or more job opportunities** (roles the participant might take).
+
+A recruiter pitching **several** openings in the same thread still counts — do **not** exclude just because more than one role is discussed.
 
 **When unsure, exclude** (favor precision over recall).
 
 ### Must be true for include
 
 1. A **named human** is involved (or clearly identifiable recruiter/TA), **or** the thread is interview scheduling with a named interviewer/recruiter.
-2. The discussion is about a **specific role** (title and/or company / agency client role).
+2. The discussion is about **job opportunity(ies)** for the participant — at least one concrete role and/or company / agency client hiring context (not “jobs in general” marketing).
 3. It is **directed at the participant** as a candidate (outreach, interview loop, application follow-up from a person).
 
 Automated systems alone are **not** enough.
@@ -29,14 +31,14 @@ Automated systems alone are **not** enough.
 
 | Type | When |
 |------|------|
-| `agency_recruiter` | Staffing / contract recruiter pitching a **client role** to the participant |
-| `inhouse_recruiter` | Company TA / sourcer emailing the participant about a role |
+| `agency_recruiter` | Staffing / contract recruiter pitching **one or more client roles** to the participant |
+| `inhouse_recruiter` | Company TA / sourcer emailing the participant about role(s) |
 | `hiring_manager` | Team leader hiring for their team |
-| `referral_network` | Colleague **personally** referring the participant to a **named open role** (not a Slack channel blast) |
-| `outbound_application` | Participant messaged a **person** about a specific posted role |
+| `referral_network` | Colleague **personally** referring the participant to **named open role(s)** (not a Slack channel blast) |
+| `outbound_application` | Participant messaged a **person** about posted role(s) |
 | `company_rep` | Company employee personally pointing the participant to openings |
 
-Signals: personal greeting, role title, company, interview times, resume/Calendly ask, back-and-forth with the participant.
+Signals: personal greeting, role title(s), company, interview times, resume/Calendly ask, back-and-forth with the participant.
 
 ## Exclude (common false positives)
 
@@ -60,7 +62,7 @@ Signals: personal greeting, role title, company, interview times, resume/Calendl
 | Field | Notes |
 |-------|-------|
 | **Company** | End employer. If an agency never names the client, use `Undisclosed (via <agency or recruiter name>)` — never the literal word AgencyName |
-| **Position title** | As stated; `Unspecified` if include but title missing |
+| **Position title** | Primary role discussed; if several, list the main ones (semicolon-separated) or `Unspecified` if include but titles missing |
 | **Recruiter/contact** | Human counterpart name |
 | **Type** | One of the include types above (`ats_system` is **deprecated** — do not use for include) |
 | **Reason** | One short sentence |

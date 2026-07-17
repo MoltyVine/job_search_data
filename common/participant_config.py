@@ -16,7 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "participant.yaml"
 EXAMPLE_PATH = REPO_ROOT / "config" / "participant.example.yaml"
 
-# Defaults match repo README — change end date in participant.yaml if needed.
+# Fallback only if search_window is missing from participant.yaml.
+# Guided setup always writes an explicit window — do not advertise these dates to users.
 DEFAULT_SEARCH_WINDOW = {
     "start": "2025-01-01",  # inclusive
     "end": "2026-01-01",  # inclusive

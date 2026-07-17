@@ -10,7 +10,7 @@ End-to-end process to extract **recruiter / job-opportunity email conversations*
 | Phase                       | Who                   | What                                                               |
 | --------------------------- | --------------------- | ------------------------------------------------------------------ |
 | **1. Prepare**              | Participant           | Create Gmail label; confirm repo-root config (see README)          |
-| **2. Gmail search & label** | Participant           | Search, manually review, apply label page-by-page                  |
+| **2. Gmail search & label** | Participant           | Search, then select-all + label each results page                  |
 | **3. Google Takeout**       | Participant           | Export labeled mail as `.mbox`                                     |
 | **4. Process**              | Cursor / command line | Run Python pipeline → filtered mbox + audit CSV                    |
 | **5. Review**               | Participant           | Spot-check `recruiter_conversations_report.csv`                    |
@@ -30,7 +30,7 @@ End-to-end process to extract **recruiter / job-opportunity email conversations*
 
 If you have not already, follow **Configure (once)** in the [repo README](../../README.md) (`config/participant.yaml`).
 
-For Gmail, `gmail.my_emails` must list every address you send from (used to detect your replies). Use `participant.search_window` for the Phase 2 date range (or omit for defaults).
+For Gmail, `gmail.my_emails` must list every address you send from (used to detect your replies). Set `participant.search_window` to your inclusive date range (used for Phase 2 search dates and pipeline filtering).
 
 
 
@@ -40,13 +40,19 @@ This phase will use a manual keyword step to cast a wide net for mail
 
 ### 2.1 Build the Gmail search query
 
-Copy paste this into gmail search box (web), Adjust the date range for your window (you can alter keywords if needed)
+Copy-paste into the Gmail search box (web). Replace the dates for **your** inclusive window (`before:` = day after inclusive end). Standard query includes noise exclusions:
 
 ```
-is:read after:2025/1/1 before:2026/1/2 (job OR role OR position OR recruit*) 
+is:read after:YYYY/M/D before:YYYY/M/D (job OR role OR position OR recruit*) -digest -newsletter -"new jobs for" -"jobs you may like" -from:quora.com
 ```
 
-Note: It assumes relevant conversations will all be read, I believe this will always be the case.
+Example (inclusive 2025-01-01 → 2026-01-01):
+
+```
+is:read after:2025/1/1 before:2026/1/2 (job OR role OR position OR recruit*) -digest -newsletter -"new jobs for" -"jobs you may like" -from:quora.com
+```
+
+`is:read` assumes relevant conversations were opened; drop it if unread recruiter mail may matter.
 
 ### 2.2 Review and label — page by page
 
@@ -116,7 +122,7 @@ takeout …/label.mbox
           recruiter_conversations_summary.csv
 ```
 
-**Classification:** include if a **real person** (or ATS tied to a real process) discusses a **specific role**. Shared rules: [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md). Backend: Ollama when available, else prompted Cursor agent (`--backend` to force).
+**Classification:** include if a **real person** discusses **one or more job opportunities**. Shared rules: [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md). Backend: Ollama when available, else prompted Cursor agent (`--backend` to force).
 
 ### 4.3 Outputs
 
@@ -171,9 +177,9 @@ Phase 1 — Prepare
 [ ] Search window set (or defaults)
 
 Phase 2 — Search & label
-[ ] Gmail search run with after/before + (job OR role OR position OR recruit*)
-[ ] All result pages reviewed
-[ ] Label applied to qualifying threads
+[ ] Gmail search run with after/before + core terms + standard noise exclusions
+[ ] All result pages: select all → apply label
+[ ] Label covers full search result set
 
 Phase 3 — Takeout
 [ ] takeout.google.com — Mail only, single label

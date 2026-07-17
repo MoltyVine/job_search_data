@@ -92,8 +92,9 @@ def print_cursor_handoff(analysis_dir: Path) -> None:
         f"     {analysis_dir / 'decisions.jsonl'}\n"
         f"   (one JSON object per line: thread_id, include, reason, company,\n"
         f"    position_title, recruiter_type, other_party, source=\"gmail\")\n"
-        f"6. Then run:\n"
-        f"     cd gmail && python3 scripts/apply_decisions.py\n"
+        f"6. Then run (use the --emails-dir path from the pipeline output):\n"
+        f"     cd gmail && python3 scripts/apply_decisions.py "
+        f"--emails-dir takeout_extracts/<takeout>/…/<label>_emails\n"
     )
 
 

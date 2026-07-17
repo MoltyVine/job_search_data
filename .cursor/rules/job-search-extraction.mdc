@@ -38,6 +38,6 @@ Two separate workflows live in subdirectories (more sources may be added later):
 ## Rules
 
 - **Never commit** takeout zips, `.mbox` exports, LinkedIn exports, `analysis/` / `output/` contents, or `config/participant.yaml` with real PII
-- Search window defaults: `2025-01-01` → `2026-01-01` (override only in shared config)
+- Always set `participant.search_window` (inclusive start/end) in shared config — skill asks; do not assume a year
 - Classification unit: Gmail `X-GM-THRID` / LinkedIn `CONVERSATION ID`
 - Keep Gmail and LinkedIn work in their respective directories
