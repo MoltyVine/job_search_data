@@ -27,7 +27,8 @@ def system_prompt(criteria_text: str | None = None) -> str:
     types = ", ".join(_INCLUDE_TYPES)
     return (
         "You classify job-search conversations for archival.\n"
-        "INCLUDE only if a real person discusses a specific job/role with the participant.\n"
+        "INCLUDE only if a real person discusses one or more job opportunities "
+        "with the participant (multi-role threads still count).\n"
         "EXCLUDE automated mail (job alerts, Otta matches, noreply application receipts, "
         "Slack unread digests, DocuSign/contracts, bank appointments, careers marketing).\n"
         "When unsure, set include=false (prefer precision).\n\n"
@@ -36,7 +37,8 @@ def system_prompt(criteria_text: str | None = None) -> str:
         "  include (boolean),\n"
         "  reason (short string),\n"
         "  company (string; empty if exclude),\n"
-        '  position_title (string; use "Unspecified" if include but unknown),\n'
+        '  position_title (string; use "Unspecified" if include but unknown; '
+        "if several roles, semicolon-separated main titles),\n"
         f"  recruiter_type (one of: {types} when include=true; "
         "unknown ONLY when include=false),\n"
         "  other_party (human counterpart name; empty if unknown).\n"
@@ -49,7 +51,8 @@ def user_prompt(thread_text: str, *, thread_id: str, source: str) -> str:
     return (
         f"Source: {source}\n"
         f"Thread ID: {thread_id}\n\n"
-        "Decide include=true only for real-person recruiting about a specific role.\n\n"
+        "Decide include=true only for real-person recruiting about one or more job "
+        "opportunities (not automated digests / marketing).\n\n"
         f"Thread:\n{thread_text}\n"
     )
 

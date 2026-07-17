@@ -10,7 +10,7 @@ End-to-end process to extract **recruiter / job-opportunity LinkedIn message con
 
 | Phase | Who | What |
 |-------|-----|------|
-| **1. Prepare** | Participant | Note date window; confirm LinkedIn display name |
+| **1. Prepare** | Participant | Note date window; LinkedIn name only if different from full name |
 | **2. LinkedIn export** | Participant | Request "Download your data" archive with Messages |
 | **3. Place data** | Participant | Unzip export into `linkedin/data/` |
 | **4. Configure** | Participant or helper | Fill in repo-root `config/participant.yaml` (shared with Gmail) |
@@ -25,16 +25,16 @@ End-to-end process to extract **recruiter / job-opportunity LinkedIn message con
 
 ### 1.1 Record your date window
 
-Use `participant.search_window` in repo-root `config/participant.yaml` (shared with all sources). Defaults are fine for most people.
+Use `participant.search_window` in repo-root `config/participant.yaml` (shared with all sources). Set the inclusive start and end for **your** search period.
 
 - `search_window` — conversations with **any message** in this range are candidates.
 - Optional `linkedin.summary_window` — narrower range for the human-readable summary doc only.
 
-### 1.2 Find your LinkedIn display name
+### 1.2 LinkedIn display name (only if different from your full name)
 
-Open any sent LinkedIn message you've written. In `messages.csv`, your outbound rows use your name in the **FROM** column (usually `First Last`). Set this as `linkedin.display_name` in config.
+`linkedin.display_name` must match the **FROM** column when *you* send a message. If that matches `participant.name`, you can omit `display_name` — the pipeline falls back to your full name.
 
-**Example:** if `FROM` shows `Jane Doe` when you send, set `display_name: "Jane Doe"` under `linkedin:`.
+If LinkedIn shows a different string (nickname, middle initial, etc.), set `display_name` to that exact value.
 
 ### 1.3 Directory layout
 
@@ -57,16 +57,15 @@ LinkedIn does **not** offer keyword search or labeling like Gmail. You download 
 1. Click your **Me** icon at the top of your LinkedIn Homepage.
 2. Select **Settings & Privacy** from the dropdown menu.
 3. Click on the **Data Privacy** tab on the left rail.
-4. Scroll to the **How LinkedIn uses your data** section and click **Get a copy of your data**.
-5. Select the **Download larger data archive** radio button (which includes messages) **or** check the **Messages** box directly under "Want something in particular?".
+4. Scroll to the **How LinkedIn uses your data** section and click **Download my data**.
+5. Select **Download larger data archive** (includes messages).
 6. Click **Request archive**. You will be prompted to enter your account password.
 7. LinkedIn will send a download link to your **primary email address**. (Larger data archives typically take up to 24 hours to prepare).
 8. Open the email and click the link to download your data folder. Inside the `.zip` file, you will find a **`messages.csv`** file.
 
 ### Tips
 
-- **Messages-only** export is faster if you only need this workflow.
-- **Larger archive** includes messages plus profile, connections, etc. — still works; the pipeline finds `messages.csv` automatically.
+- **Download larger data archive** is the usual choice for this workflow; the pipeline finds `messages.csv` automatically.
 - Export is a point-in-time snapshot. Re-export before filing if you want messages through a later date.
 - LinkedIn may also include `guide_messages.csv`, `learning_coach_messages.csv`, etc. — **ignore** those; use root **`messages.csv`**.
 
@@ -115,18 +114,18 @@ participant:
   first_name: "Jane"
   last_name: "Doe"
   search_window:
-    start: "2025-01-01"   # default
-    end: "2026-01-01"     # default; later if needed, e.g. 2026-06-30
+    start: "YYYY-MM-DD"   # inclusive — your range
+    end: "YYYY-MM-DD"     # inclusive
 
 gmail:
   my_emails:
     - jane.doe@gmail.com
 
 linkedin:
-  display_name: "Jane Doe"   # must match FROM column when you send
+  display_name: "Jane Doe"   # only if different from participant.name; must match FROM when you send
 ```
 
-Omit `search_window` to use code defaults. Fill both `gmail` and `linkedin` sections in this file as needed.
+Omit nothing critical: always set `search_window`. Fill both `gmail` and `linkedin` sections in this file as needed. Omit `linkedin.display_name` when it matches `participant.name`.
 
 ---
 
@@ -216,10 +215,10 @@ Invoke the **`job-search-extraction`** skill for interview → config → Linked
 ```
 Phase 1 — Prepare
 [ ] Date window documented (match Gmail if applicable)
-[ ] LinkedIn display name confirmed from messages.csv
+[ ] LinkedIn name noted only if different from full name (or verified from messages.csv FROM)
 
 Phase 2 — LinkedIn export
-[ ] Requested archive with Messages
+[ ] Requested archive (Download larger data archive)
 [ ] Download link received (may take up to 24h)
 [ ] messages.csv located in zip
 

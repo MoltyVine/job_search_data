@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -64,3 +67,42 @@ class OllamaClient:
 
 def ollama_reachable(base_url: str = "http://127.0.0.1:11434") -> bool:
     return OllamaClient(base_url=base_url).reachable()
+
+
+def ensure_ollama_running(
+    base_url: str = "http://127.0.0.1:11434",
+    *,
+    wait_s: float = 45.0,
+) -> bool:
+    """Return True if Ollama responds, starting ``ollama serve`` when installed but down."""
+    if ollama_reachable(base_url):
+        return True
+
+    ollama_bin = shutil.which("ollama")
+    if not ollama_bin:
+        return False
+
+    print(
+        f"Ollama is installed but not reachable at {base_url}; starting `ollama serve`…",
+        flush=True,
+    )
+    try:
+        subprocess.Popen(
+            [ollama_bin, "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        print(f"Failed to start ollama serve: {exc}", flush=True)
+        return False
+
+    deadline = time.monotonic() + wait_s
+    while time.monotonic() < deadline:
+        time.sleep(0.5)
+        if ollama_reachable(base_url):
+            print("Ollama is up.", flush=True)
+            return True
+
+    print(f"Ollama still not reachable after {wait_s:.0f}s.", flush=True)
+    return False

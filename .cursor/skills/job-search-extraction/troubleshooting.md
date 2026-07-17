@@ -2,10 +2,9 @@
 
 ## Gmail search returns too many results
 
-- Keep core terms: `job OR role OR position OR recruit*`
-- Add exclusions: `-digest -newsletter -"new jobs for" -"jobs you may like" -from:quora.com`
+- Standard query already includes: `-digest -newsletter -"new jobs for" -"jobs you may like" -from:quora.com`
 - Add more `-from:` for known alert domains; avoid `-unsubscribe`
-- Still label manually; noise is OK at this stage
+- Still select-all label each search page; noise is OK — the classifier filters later
 
 ## Gmail search returns too few results
 
@@ -57,8 +56,7 @@ cp config/participant.example.yaml config/participant.yaml
 
 1. Open `gmail/output/latest/recruiter_conversations_report.csv` or LinkedIn `output/latest/` summary
 2. Note noisy senders / threads
-3. For Gmail header noise: add to `gmail/blacklist.py` if still used as a helper
-4. Fix bad LLM calls by editing `analysis/decisions.jsonl`, then re-run `scripts/apply_decisions.py`
+3. Fix bad LLM calls by editing `analysis/decisions.jsonl`, then re-run `scripts/apply_decisions.py` (Gmail needs `--emails-dir`)
 
 ## False negatives in output
 

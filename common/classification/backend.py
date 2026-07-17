@@ -7,7 +7,7 @@ from typing import Literal
 
 from common.participant_config import classification_settings
 
-from .client import OllamaClient, ollama_reachable
+from .client import OllamaClient, ensure_ollama_running
 
 BackendName = Literal["ollama", "cursor"]
 
@@ -20,8 +20,9 @@ def resolve_backend(
 ) -> BackendName:
     """Pick backend.
 
-    Order: CLI ``explicit`` → config ``classification.backend`` → probe Ollama →
-    interactive prompt (if allowed) → error.
+    Order: CLI ``explicit`` → config ``classification.backend`` → probe Ollama
+    (auto-start ``ollama serve`` if the binary is installed) → interactive prompt
+    (if allowed) → error.
     """
     settings = classification_settings(config)
     choice = (explicit or settings.get("backend") or "auto").strip().lower()
@@ -30,10 +31,10 @@ def resolve_backend(
     base_url = ollama_cfg.get("base_url") or "http://127.0.0.1:11434"
 
     if choice in {"ollama", "local", "llm"}:
-        if not ollama_reachable(base_url):
+        if not ensure_ollama_running(base_url):
             raise SystemExit(
                 f"Backend 'ollama' requested but Ollama is not reachable at {base_url}.\n"
-                "Start it with: ollama serve\n"
+                "Install Ollama, or start it with: ollama serve\n"
                 "Or pass --backend cursor"
             )
         return "ollama"
@@ -46,7 +47,7 @@ def resolve_backend(
             f"Unknown classification backend '{choice}'. Use auto, ollama, or cursor."
         )
 
-    if ollama_reachable(base_url):
+    if ensure_ollama_running(base_url):
         print(f"Using local LLM via Ollama at {base_url}")
         return "ollama"
 

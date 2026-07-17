@@ -114,8 +114,8 @@ def classify_threads_ollama(
                     '{"include":true|false,"reason":"...","company":"","position_title":"",'
                     '"recruiter_type":"unknown","other_party":""}',
                     user
-                    + "\n\nIs this a real person recruiting the participant for a specific role? "
-                    "include=true only if yes.",
+                    + "\n\nIs this a real person recruiting the participant about one or more "
+                    "job opportunities? include=true only if yes.",
                 )
                 decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
         except Exception as exc:  # noqa: BLE001 — keep pipeline moving
