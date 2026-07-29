@@ -45,7 +45,7 @@ This keeps `analysis/<label>/` and `output/<label>/` separate per account instea
 ../.venv/bin/python3 scripts/merge_account_summaries.py
 ```
 
-writes `gmail/output/all_accounts_summary.csv` combining every account's summary rows, tagged with an `Account` column.
+writes `gmail/output/all_accounts_summary.csv` combining every account’s summary rows, tagged with an `Account` column.
 
 ## Classification backend
 

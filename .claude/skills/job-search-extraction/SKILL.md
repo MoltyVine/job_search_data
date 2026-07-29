@@ -17,8 +17,8 @@ understand the repo. You place files, write config, run commands, classify
 conversations yourself, and wait at human gates (Gmail labeling, Takeout,
 LinkedIn archive email).
 
-**Criteria:** [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md)
-**Gmail search detail:** [gmail-search-reference.md](gmail-search-reference.md)
+**Criteria:** [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md)  
+**Gmail search detail:** [gmail-search-reference.md](gmail-search-reference.md)  
 **Troubleshooting:** [troubleshooting.md](troubleshooting.md)
 
 ## Progress checklist
@@ -53,8 +53,8 @@ Copy and update as you go. Check off **one source fully** before starting the ne
 10. **You run processing** — after data is on disk, you run the pipeline via the pinned `.venv/bin/python3`, then classify and run `apply_decisions.py`. Don’t ask the user to figure out commands.
 11. **Search window** — always ask for inclusive start/end dates. Do **not** suggest, mention, or offer a default range.
 12. **Before any pipeline** — tell the user the dump + classify step may take a **few minutes** for a large mailbox (you’re reading every thread yourself). Run with `PYTHONUNBUFFERED=1` so any progress output streams. Prefer keeping the command in the foreground so they can see status.
-13. **Classification backend** — default is `agent` (you, working through the thread dump; no API key, nothing to install). After `dump_threads.py` prints the in-window thread count, if it's large (rule of thumb: **50+** threads) mention that the optional `openrouter` backend can classify automatically instead — trades privacy (thread text goes to OpenRouter) for speed, needs `OPENROUTER_API_KEY`. Only switch if the user opts in; never enable it unprompted.
-14. **Multiple Gmail accounts** — ask during Gmail's interview step (Step 3 below). Each account gets its own full Turn A + Turn B pass, tagged with `--account <label>`. Don't move to LinkedIn (or wrap up) until every Gmail account has a summary CSV.
+13. **Classification backend** — default is `agent` (you, working through the thread dump; no API key, nothing to install). After `dump_threads.py` prints the in-window thread count, if it’s large (rule of thumb: **50+** threads) mention that the optional `openrouter` backend can classify automatically instead — trades privacy (thread text goes to OpenRouter) for speed, needs `OPENROUTER_API_KEY`. Only switch if the user opts in; never enable it unprompted.
+14. **Multiple Gmail accounts** — ask during Gmail’s interview step (Step 3 below). Each account gets its own full Turn A + Turn B pass, tagged with `--account <label>`. Don’t move to LinkedIn (or wrap up) until every Gmail account has a summary CSV.
 
 ---
 
@@ -77,7 +77,7 @@ Ask:
 
 **If Gmail:**
 
-- Every address they send from, across **every** Gmail account they'll search (one shared list — used only to detect "is this me?" in any thread).
+- Every address they send from, across **every** Gmail account they’ll search (one shared list — used only to detect "is this me?" in any thread).
 - **How many Gmail accounts** need searching? Most people: just one. If more than one, get a short label for each (e.g. "personal", "old work") — each account repeats the full Gmail loop (Turn A + Turn B) on its own, tagged with `--account <label>`.
 - Gmail search: build the **standard** query from their window (see below). Confirm it; they may edit. Do **not** frame noise exclusions as optional extras — they are part of the standard query. Same query applies to every account (each has its own label and Takeout export).
 
@@ -175,7 +175,7 @@ Source N+1 (e.g. LinkedIn):
 
 ## Gmail — Turn A: Extraction (if selected)
 
-Stay on Gmail only until Turn B is done — and if several accounts were selected, until **all** of them are done. Prefer **two waits** per account: labeling done, then Takeout on disk. If this is account 2+, repeat A1–A2 for that account's own label and Takeout export; nothing here changes per account except which Gmail account the user is working in.
+Stay on Gmail only until Turn B is done — and if several accounts were selected, until **all** of them are done. Prefer **two waits** per account: labeling done, then Takeout on disk. If this is account 2+, repeat A1–A2 for that account’s own label and Takeout export; nothing here changes per account except which Gmail account the user is working in.
 
 ### A1. Label + search (wait for “labeling done”)
 
@@ -234,16 +234,16 @@ PYTHONUNBUFFERED=1 ../.venv/bin/python3 run_gmail_pipeline.py
 
 With **one** folder in `takeout_extracts/`, no path argument is needed. If several, pass the folder path.
 
-The dump step prints the in-window thread count — if it's large (50+), mention the optional `openrouter` backend now (rule 13) before you start classifying by hand; proceed with the default `agent` backend unless the user opts in.
+The dump step prints the in-window thread count — if it’s large (50+), mention the optional `openrouter` backend now (rule 13) before you start classifying by hand; proceed with the default `agent` backend unless the user opts in.
 
-The run stops after printing **classification instructions** — classify **this account only** (see [Classification](#classification)), then apply using the **exact command the pipeline printed** (it already includes the right `--emails-dir`, and `--analysis-dir`/`--output-dir` when `--account` is in play — don't drop those flags or output lands in the wrong account's folder):
+The run stops after printing **classification instructions** — classify **this account only** (see [Classification](#classification)), then apply using the **exact command the pipeline printed** (it already includes the right `--emails-dir`, and `--analysis-dir`/`--output-dir` when `--account` is in play — don’t drop those flags or output lands in the wrong account’s folder):
 
 ```bash
 cd gmail && ../.venv/bin/python3 scripts/apply_decisions.py --emails-dir takeout_extracts/<takeout>/…/<label>_emails
-# with --account set, the pipeline's printout adds --analysis-dir/--output-dir here too — keep them
+# with --account set, the pipeline’s printout adds --analysis-dir/--output-dir here too — keep them
 ```
 
-**If more Gmail accounts remain, go back to Gmail Turn A for the next one** — don't point to outputs or move to LinkedIn yet.
+**If more Gmail accounts remain, go back to Gmail Turn A for the next one** — don’t point to outputs or move to LinkedIn yet.
 
 **Once every Gmail account is done**, if there was more than one, merge them:
 
@@ -307,7 +307,7 @@ cd linkedin
 PYTHONUNBUFFERED=1 ../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
-The dump step prints the in-window conversation count — if it's large (50+), mention the optional `openrouter` backend now (rule 13) before you start classifying by hand; proceed with the default `agent` backend unless the user opts in.
+The dump step prints the in-window conversation count — if it’s large (50+), mention the optional `openrouter` backend now (rule 13) before you start classifying by hand; proceed with the default `agent` backend unless the user opts in.
 
 The run stops after printing **classification instructions** — classify **this source only** (see [Classification](#classification)), then:
 
@@ -331,16 +331,16 @@ Then → [Final wrap-up](#final-wrap-up).
 
 Two backends (rule 13). **`agent` (default) — you classify inline:**
 
-1. Read every `===== THREAD #… =====` or `===== CONV #… =====` block in that source's dump:
+1. Read every `===== THREAD #… =====` or `===== CONV #… =====` block in that source’s dump:
    - Gmail: `gmail/analysis/threads_dump.txt` (or `gmail/analysis/<label>/threads_dump.txt` when `--account` is in play)
    - LinkedIn: `linkedin/analysis/threads_dump.txt`
 2. Apply [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md) (real person + one or more job opportunities; unsure → **exclude**).
-3. Write one JSON object per thread to that dump's `decisions.jsonl` (`source`: `"gmail"` or `"linkedin"`).
-4. Run that source's `apply_decisions.py` (always via `.venv/bin/python3`), using the **exact command the pipeline printed** — it already has the right `--emails-dir`/`--analysis-dir`/`--output-dir` for this account:
+3. Write one JSON object per thread to that dump’s `decisions.jsonl` (`source`: `"gmail"` or `"linkedin"`).
+4. Run that source’s `apply_decisions.py` (always via `.venv/bin/python3`), using the **exact command the pipeline printed** — it already has the right `--emails-dir`/`--analysis-dir`/`--output-dir` for this account:
    - **Gmail:** must pass `--emails-dir` (plus `--analysis-dir`/`--output-dir` when using `--account`).
    - **LinkedIn:** `cd linkedin && ../.venv/bin/python3 scripts/apply_decisions.py` is enough.
 
-**`openrouter` (opt-in) — automated, for high-volume mailboxes:** only after the user agrees (rule 13). Set `classification.backend: openrouter` in `config/participant.yaml` (and optionally `classification.openrouter.model` — check [openrouter.ai/models](https://openrouter.ai/models) for current slugs) or pass `--backend openrouter` on the pipeline command. Confirm `OPENROUTER_API_KEY` is set in the environment before running — if it's missing, the pipeline explains how to export it and stops; do not put the key in `participant.yaml`. With this backend the pipeline classifies every thread itself and writes `decisions.jsonl` directly — skip straight to `apply_decisions.py` once it finishes.
+**`openrouter` (opt-in) — automated, for high-volume mailboxes:** only after the user agrees (rule 13). Set `classification.backend: openrouter` in `config/participant.yaml` (and optionally `classification.openrouter.model` — check [openrouter.ai/models](https://openrouter.ai/models) for current slugs) or pass `--backend openrouter` on the pipeline command. Confirm `OPENROUTER_API_KEY` is set in the environment before running — if it’s missing, the pipeline explains how to export it and stops; do not put the key in `participant.yaml`. With this backend the pipeline classifies every thread itself and writes `decisions.jsonl` directly — skip straight to `apply_decisions.py` once it finishes.
 
 ### Classification prompts
 

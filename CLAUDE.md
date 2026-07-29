@@ -1,6 +1,6 @@
 # Job search extraction project
 
-**Start here:** this repo's `README.md` and the `job-search-extraction` skill (guided setup — `.claude/skills/job-search-extraction/SKILL.md`). Shared config: `config/participant.yaml`.
+**Start here:** this repo’s `README.md` and the `job-search-extraction` skill (guided setup — `.claude/skills/job-search-extraction/SKILL.md`). Shared config: `config/participant.yaml`.
 
 Two separate workflows live in subdirectories (more sources may be added later):
 
@@ -28,14 +28,14 @@ Never invoke a bare `python3`/`pip` on a `gmail/` or `linkedin/` script; always 
 - Loader: `common/participant_config.py`
 - Shape: `participant:` + `gmail:` / `linkedin:`
 - Criteria: `docs/CLASSIFICATION_CRITERIA.md`
-- Classifier: `classification.backend` in `participant.yaml`, `agent` (default) or `openrouter`. `agent` — the Claude Code agent running the pipeline reads each source's `analysis/threads_dump.txt` directly and writes `analysis/decisions.jsonl` itself; no network call, no API key. `openrouter` — opt-in, for high-volume runs; sends thread text to OpenRouter, needs `OPENROUTER_API_KEY`
+- Classifier: `classification.backend` in `participant.yaml`, `agent` (default) or `openrouter`. `agent` — the Claude Code agent running the pipeline reads each source’s `analysis/threads_dump.txt` directly and writes `analysis/decisions.jsonl` itself; no network call, no API key. `openrouter` — opt-in, for high-volume runs; sends thread text to OpenRouter, needs `OPENROUTER_API_KEY`
 
 ## Gmail
 
 - Guide: `gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md`
 - Pipeline: `gmail/run_gmail_pipeline.py`
 - Skill: `job-search-extraction`
-- **Multiple accounts:** run the pipeline once per Gmail account with `--account <label>` (keeps `analysis/<label>/` and `output/<label>/` separate), then `gmail/scripts/merge_account_summaries.py` for one combined CSV. `gmail.my_emails` in `participant.yaml` is shared across every account (any address that's "you").
+- **Multiple accounts:** run the pipeline once per Gmail account with `--account <label>` (keeps `analysis/<label>/` and `output/<label>/` separate), then `gmail/scripts/merge_account_summaries.py` for one combined CSV. `gmail.my_emails` in `participant.yaml` is shared across every account (any address that’s "you").
 
 ## LinkedIn
 

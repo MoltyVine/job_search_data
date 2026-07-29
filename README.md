@@ -105,13 +105,13 @@ cd gmail
 # optional: --all-dates
 ```
 
-**Several Gmail accounts to review?** Each Google Takeout export is per-account, so run the pipeline once per account with `--account <label>` (e.g. `--account personal`, `--account oldwork`) — this keeps each account's `analysis/` and `output/` separate instead of overwriting the previous account's run. `gmail.my_emails` in `participant.yaml` stays one shared list across every account. Once every account has a run, combine them:
+**Several Gmail accounts to review?** Each Google Takeout export is per-account, so run the pipeline once per account with `--account <label>` (e.g. `--account personal`, `--account oldwork`) — this keeps each account’s `analysis/` and `output/` separate instead of overwriting the previous account’s run. `gmail.my_emails` in `participant.yaml` stays one shared list across every account. Once every account has a run, combine them:
 
 ```bash
 ../.venv/bin/python3 scripts/merge_account_summaries.py
 ```
 
-writes `gmail/output/all_accounts_summary.csv` — every account's summary rows in one file, tagged with an `Account` column.
+writes `gmail/output/all_accounts_summary.csv` — every account’s summary rows in one file, tagged with an `Account` column.
 
 ### LinkedIn
 
@@ -133,7 +133,7 @@ Each conversation is included when it was with a **real person** about **one or 
 | `agent` (default) | Each pipeline dumps threads to `analysis/threads_dump.txt`, then stops and prints instructions — the Claude Code agent running the pipeline reads that dump, applies the criteria, and writes `analysis/decisions.jsonl` itself. | Nothing — no network call, no API key |
 | `openrouter` (opt-in) | The pipeline classifies every thread automatically via [OpenRouter](https://openrouter.ai). Faster for a large mailbox, but thread text leaves this session. | `OPENROUTER_API_KEY` in your environment (never in `participant.yaml`) |
 
-`agent` is private and free but classifies one thread at a time in conversation, so it doesn't scale well past a few hundred threads — switch to `openrouter` for bigger mailboxes.
+`agent` is private and free but classifies one thread at a time in conversation, so it doesn’t scale well past a few hundred threads — switch to `openrouter` for bigger mailboxes.
 
 Details: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md).
 

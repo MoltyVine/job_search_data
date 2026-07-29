@@ -1,6 +1,6 @@
 # Classification criteria — recruiter / job-opportunity conversations
 
-Shared rules for Gmail and LinkedIn classification. Applied either by the Claude Code agent working through each source's thread dump (default — no network call, no API key), or by the optional `openrouter` backend for high-volume runs (see `classification:` in `config/participant.example.yaml`).
+Shared rules for Gmail and LinkedIn classification. Applied either by the Claude Code agent working through each source’s thread dump (default — no network call, no API key), or by the optional `openrouter` backend for high-volume runs (see `classification:` in `config/participant.example.yaml`).
 
 ## Unit of filtering
 

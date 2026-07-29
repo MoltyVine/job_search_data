@@ -117,13 +117,13 @@ With one folder under `takeout_extracts/`, no path argument is needed. If severa
 ../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-oldwork/ --account oldwork
 ```
 
-This keeps `analysis/<label>/` and `output/<label>/` separate per account so the second run doesn't overwrite the first. `gmail.my_emails` in `participant.yaml` stays one shared list across every account — it's just used to detect "is this me?" in any thread. Once every account has a run:
+This keeps `analysis/<label>/` and `output/<label>/` separate per account so the second run doesn’t overwrite the first. `gmail.my_emails` in `participant.yaml` stays one shared list across every account — it’s just used to detect "is this me?" in any thread. Once every account has a run:
 
 ```bash
 ../.venv/bin/python3 scripts/merge_account_summaries.py
 ```
 
-writes `gmail/output/all_accounts_summary.csv` — every account's summary rows combined, tagged with an `Account` column.
+writes `gmail/output/all_accounts_summary.csv` — every account’s summary rows combined, tagged with an `Account` column.
 
 ### 4.2 What the pipeline does
 
@@ -188,7 +188,7 @@ Invoke the **`job-search-extraction`** skill for interview → config → labeli
 | Empty dump (0 threads) | Window may not match Takeout dates — use `--all-dates` or fix `search_window` |
 | `Missing participant.yaml` | `cp config/participant.example.yaml config/participant.yaml` |
 | `ModuleNotFoundError: yaml` | Not using the pinned venv — run `.venv/bin/pip install -r requirements.txt` from the repo root, then invoke scripts via `.venv/bin/python3` |
-| Second Gmail account's run overwrote the first | Re-run both with `--account <label>` (see §4.1) — without it, every account shares the same `analysis/`/`output/` |
+| Second Gmail account’s run overwrote the first | Re-run both with `--account <label>` (see §4.1) — without it, every account shares the same `analysis/`/`output/` |
 | `Backend 'openrouter' requested but OPENROUTER_API_KEY is not set` | Export the key, or drop `--backend openrouter` / `classification.backend` to use the default `agent` backend instead |
 
 ---
