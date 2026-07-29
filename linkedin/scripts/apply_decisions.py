@@ -162,7 +162,7 @@ def main() -> None:
     lines = [
         "# Recruiter conversations summary (LinkedIn)",
         "",
-        "Built from local LLM or Cursor decisions applied by `scripts/apply_decisions.py`.",
+        "Built from classification decisions applied by `scripts/apply_decisions.py`.",
         "Criteria: [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md).",
         "",
         f"- Search window: {start_s} → {end_s}",

@@ -74,12 +74,6 @@ def main() -> None:
     parser.add_argument("takeout_dir", type=Path, nargs="?", default=None)
     parser.add_argument("--mbox", type=Path, help="Explicit source .mbox")
     parser.add_argument("--config", type=Path, default=None)
-    parser.add_argument(
-        "--backend",
-        choices=["auto", "ollama", "cursor"],
-        default=None,
-        help="Classification backend override",
-    )
     parser.add_argument("--skip-split", action="store_true")
     parser.add_argument("--skip-dump", action="store_true")
     parser.add_argument("--skip-classify", action="store_true")
@@ -141,21 +135,18 @@ def main() -> None:
             str(SCRIPTS / "classify_threads.py"),
             "--analysis-dir",
             str(ANALYSIS),
-            *config_flag,
         ]
-        if args.backend:
-            classify_cmd.extend(["--backend", args.backend])
         run_step(classify_cmd)
 
-    # Cursor backend stops after handoff — no decisions yet
+    # Classification happens in this session, not in this script — no decisions yet
     decisions = ANALYSIS / "decisions.jsonl"
     if args.skip_apply:
         print("\nSkipped apply.")
     elif not decisions.exists() or decisions.stat().st_size == 0:
         print(
-            "\nNo decisions.jsonl yet — if you chose Cursor backend, "
-            "classify in Cursor then run:\n"
-            f"  python3 scripts/apply_decisions.py --emails-dir {emails_dir}"
+            "\nNo decisions.jsonl yet — classify the threads in this session "
+            "(see docs/CLASSIFICATION_CRITERIA.md), then run:\n"
+            f"  {py} scripts/apply_decisions.py --emails-dir {emails_dir}"
         )
     else:
         run_step(

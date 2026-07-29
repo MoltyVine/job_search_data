@@ -33,14 +33,14 @@ Normal. Manual labeling casts a wide net; classification drops bulk digests and 
 ```bash
 cd gmail
 # put unzipped export in takeout_extracts/, or:
-python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/
 ```
 
 ## Pipeline: Multiple mbox files found
 
 ```bash
 cd gmail
-python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/ \
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/ \
   --mbox takeout_extracts/takeout-YYYYMMDD/Takeout/Mail/job_opportunities.mbox
 ```
 

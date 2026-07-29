@@ -4,14 +4,22 @@ Extract recruiter / job-opportunity **LinkedIn message conversations** from a Li
 
 ## Quick start
 
-```bash
-cp config/participant.example.yaml config/participant.yaml
-# edit: participant.*, linkedin.display_name, classification.*
+Run from the repo root first (see root [README.md](../README.md) → Requirements) to build the pinned `.venv/`:
 
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+cp config/participant.example.yaml config/participant.yaml
+# edit: participant.*, linkedin.display_name
+```
+
+Then, using that same venv:
+
+```bash
 cd linkedin
-pip install -r requirements.txt
-python3 run_linkedin_pipeline.py
-# --backend ollama|cursor
+../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
 ## Full workflow
@@ -40,5 +48,5 @@ linkedin/
 | `run_linkedin_pipeline.py` | stats → dump → classify → apply |
 | `scripts/stats.py` | Keyword pre-screen (sanity only) |
 | `scripts/dump_threads.py` | Thread dump |
-| `scripts/classify_threads.py` | Ollama or Cursor handoff |
+| `scripts/classify_threads.py` | Prints classification instructions for the agent |
 | `scripts/apply_decisions.py` | Decisions → output CSVs/md |

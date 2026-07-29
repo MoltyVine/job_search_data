@@ -29,12 +29,6 @@ def main() -> None:
         help="Directory with Complete_LinkedInDataExport_* folder",
     )
     parser.add_argument("--config", type=Path, default=None)
-    parser.add_argument(
-        "--backend",
-        choices=["auto", "ollama", "cursor"],
-        default=None,
-        help="Classification backend override",
-    )
     parser.add_argument("--skip-stats", action="store_true")
     parser.add_argument("--skip-dump", action="store_true")
     parser.add_argument("--skip-classify", action="store_true")
@@ -57,10 +51,7 @@ def main() -> None:
             str(SCRIPTS / "classify_threads.py"),
             "--analysis-dir",
             str(ANALYSIS),
-            *config_flag,
         ]
-        if args.backend:
-            classify_cmd.extend(["--backend", args.backend])
         run(classify_cmd)
 
     decisions = ANALYSIS / "decisions.jsonl"
@@ -68,9 +59,9 @@ def main() -> None:
         print("\nSkipped apply.")
     elif not decisions.exists() or decisions.stat().st_size == 0:
         print(
-            "\nNo decisions.jsonl yet — if you chose Cursor backend, "
-            "classify in Cursor then run:\n"
-            "  python3 scripts/apply_decisions.py"
+            "\nNo decisions.jsonl yet — classify the conversations in this session "
+            "(see docs/CLASSIFICATION_CRITERIA.md), then run:\n"
+            f"  {py} scripts/apply_decisions.py"
         )
     else:
         run(

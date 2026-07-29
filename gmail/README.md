@@ -4,15 +4,24 @@ Extract recruiter / job-opportunity **email conversations** from a Google Takeou
 
 ## Quick start
 
-```bash
-cp config/participant.example.yaml config/participant.yaml
-# edit: participant.*, gmail.my_emails, classification.*
+Run from the repo root first (see root [README.md](../README.md) → Requirements) to build the pinned `.venv/`:
 
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+cp config/participant.example.yaml config/participant.yaml
+# edit: participant.*, gmail.my_emails
+```
+
+Then, using that same venv:
+
+```bash
 cd gmail
-pip install -r requirements.txt
 # put unzipped takeout under takeout_extracts/, then:
-python3 run_gmail_pipeline.py
-# --backend ollama|cursor  --all-dates
+../.venv/bin/python3 run_gmail_pipeline.py
+# --all-dates
 ```
 
 **Outputs** under `gmail/output/latest/` (each run also kept in `gmail/output/runs/<timestamp>/`):
@@ -34,7 +43,7 @@ Guided path: skill **`job-search-extraction`**. Shared criteria: [../docs/CLASSI
 | `run_gmail_pipeline.py` | Orchestrator: split → dump → classify → apply |
 | `split_mbox.py` | `.mbox` → one `.eml` per message |
 | `scripts/dump_threads.py` | Thread dump for classification |
-| `scripts/classify_threads.py` | Ollama or Cursor handoff |
+| `scripts/classify_threads.py` | Prints classification instructions for the agent |
 | `scripts/apply_decisions.py` | Decisions → mbox + CSVs |
 | `scripts/validate_takeout.py` | Output consistency check |
 

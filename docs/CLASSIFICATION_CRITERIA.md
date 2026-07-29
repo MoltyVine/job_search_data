@@ -1,6 +1,6 @@
 # Classification criteria — recruiter / job-opportunity conversations
 
-Shared rules for Gmail and LinkedIn classification (local LLM or Cursor agent).
+Shared rules for Gmail and LinkedIn classification, applied by the Claude Code agent while working through each source's thread dump.
 
 ## Unit of filtering
 

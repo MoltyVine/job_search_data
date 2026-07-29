@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dump Gmail threads (from split .eml dir) for LLM / Cursor classification."""
+"""Dump Gmail threads (from split .eml dir) for classification by the agent."""
 
 from __future__ import annotations
 

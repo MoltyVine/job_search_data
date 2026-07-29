@@ -8,12 +8,12 @@ gmail/takeout_extracts/
     Takeout/Mail/<label>.mbox
 ```
 
-Then from `gmail/`:
+Then from `gmail/` (using the pinned venv — see root [README.md](../../README.md) → Requirements):
 
 ```bash
-python3 run_gmail_pipeline.py
+../.venv/bin/python3 run_gmail_pipeline.py
 ```
 
 - **One** folder with an `.mbox` → used automatically
-- **Several** → pass the path: `python3 run_gmail_pipeline.py takeout_extracts/<folder>/`
+- **Several** → pass the path: `../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/<folder>/`
 - Contents of this directory are gitignored (not committed)

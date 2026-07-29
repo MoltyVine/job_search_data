@@ -21,13 +21,6 @@ gmail:
 linkedin:
   display_name: "Jane Doe"   # LinkedIn FROM when you send; omit if same as participant.name
 
-# Classification backend for Gmail + LinkedIn (local LLM or Cursor agent).
-classification:
-  backend: auto          # auto | ollama | cursor
-  ollama:
-    base_url: "http://127.0.0.1:11434"  # keep local unless you trust a remote host with message text
-    model: "qwen2.5:14b"  # or llama3.1:8b
-
 # Future example (not implemented yet):
 # sms:
 #   phone_numbers: ["+1..."]

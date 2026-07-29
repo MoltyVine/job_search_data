@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dump full LinkedIn conversation threads for LLM / Cursor classification."""
+"""Dump full LinkedIn conversation threads for classification by the agent."""
 
 from __future__ import annotations
 

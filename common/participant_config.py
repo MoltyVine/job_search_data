@@ -105,31 +105,3 @@ def participant_name_patterns(config: dict | None = None) -> str:
     return "|".join(parts)
 
 
-DEFAULT_CLASSIFICATION = {
-    "backend": "auto",
-    "ollama": {
-        "base_url": "http://127.0.0.1:11434",
-        "model": "qwen2.5:14b",
-        "temperature": 0.1,
-        "timeout_s": 180,
-    },
-    "max_chars_per_thread_msg": 1200,
-}
-
-
-def classification_settings(config: dict | None = None) -> dict:
-    """Return classification block merged over defaults."""
-    cfg = config or load_participant_config()
-    block = cfg.get("classification")
-    if not isinstance(block, dict):
-        block = {}
-    out = {
-        "backend": block.get("backend") or DEFAULT_CLASSIFICATION["backend"],
-        "max_chars_per_thread_msg": block.get("max_chars_per_thread_msg")
-        or DEFAULT_CLASSIFICATION["max_chars_per_thread_msg"],
-        "ollama": {
-            **DEFAULT_CLASSIFICATION["ollama"],
-            **(block.get("ollama") or {}),
-        },
-    }
-    return out

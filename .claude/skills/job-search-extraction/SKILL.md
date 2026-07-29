@@ -11,11 +11,12 @@ description: >-
 # Job-search extraction (end-to-end)
 
 Guide the user from zero to finished deliverables. They should **not** need to
-understand the repo. You place files, write config, run commands, and wait at
-human gates (Gmail labeling, Takeout, LinkedIn archive email).
+understand the repo. You place files, write config, run commands, classify
+conversations yourself, and wait at human gates (Gmail labeling, Takeout,
+LinkedIn archive email).
 
-**Criteria:** [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md)  
-**Gmail search detail:** [gmail-search-reference.md](gmail-search-reference.md)  
+**Criteria:** [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md)
+**Gmail search detail:** [gmail-search-reference.md](gmail-search-reference.md)
 **Troubleshooting:** [troubleshooting.md](troubleshooting.md)
 
 ## Progress checklist
@@ -26,9 +27,9 @@ Copy and update as you go. Check off **one source fully** before starting the ne
 - [ ] Interview + confirm summary
 - [ ] Write config/participant.yaml
 - [ ] Gmail extraction (label → Takeout → place export)   # if selected
-- [ ] Gmail processing (pipeline → summary)               # if selected
+- [ ] Gmail processing (pipeline → classify → summary)    # if selected
 - [ ] LinkedIn extraction (request → place messages.csv)  # if selected
-- [ ] LinkedIn processing (pipeline → summary)            # if selected
+- [ ] LinkedIn processing (pipeline → classify → summary) # if selected
 - [ ] Final wrap-up (paths + optional cross-source check)
 ```
 
@@ -41,14 +42,14 @@ Copy and update as you go. Check off **one source fully** before starting the ne
 3. **Default order** when both selected: **Gmail, then LinkedIn**. (Only LinkedIn → skip Gmail blocks.)
 4. **Plain language** — say “your summary spreadsheet,” not jargon, except when a path is required. Paths are from the **repo root** (`job_search_data/`) unless you `cd` into `gmail/` or `linkedin/`.
 5. **Pace human gates** — one gate per turn when possible. Example Gmail extraction: (a) create label + paste search + select-all label → wait; (b) Takeout steps → wait until zip is unzipped under `gmail/takeout_extracts/`. Do not invent exports or skip labeling.
-6. **Privacy** — never commit `config/participant.yaml`, takeouts, `.mbox`, LinkedIn `data/`, or `analysis/` / `output/` contents (gitignored).
-7. **Gmail labeling** — after the search filter is in place, **select all on each results page** and apply the label. Do **not** ask them to judge relevance per thread; the classifier does that later.
+6. **Privacy** — never commit `config/participant.yaml`, takeouts, `.mbox`, LinkedIn `data/`, or `analysis/` / `output/` contents (gitignored). Message content stays local to this session — never sent to any third-party API.
+7. **Gmail labeling** — after the search filter is in place, **select all on each results page** and apply the label. Do **not** ask them to judge relevance per thread; you classify that later.
 8. **Classify handoff** — when unsure, **exclude** (see shared criteria). Applies during that source’s **processing** turn, not Gmail labeling.
 9. Do **not** tell the user to open other skills; this skill covers the full path.
-10. **You run processing** — after data is on disk, you run `pip install` + the pipeline (and `apply_decisions` after a handoff). Don’t ask the user to figure out commands.
+10. **You run processing** — after data is on disk, you run the pipeline via the pinned `.venv/bin/python3`, then classify and run `apply_decisions.py`. Don’t ask the user to figure out commands.
 11. **Search window** — always ask for inclusive start/end dates. Do **not** suggest, mention, or offer a default range.
-12. **Before any pipeline** — tell the user classification may take a **few minutes** (sometimes longer). Run with `PYTHONUNBUFFERED=1` so the classify progress bar (`N/total … ETA …`) streams. Prefer keeping the command in the foreground so they can see status; if you use Shell monitoring, watch for progress lines matching `\d+/\d+`.
-13. **Ollama** — pipelines auto-start `ollama serve` when the binary is installed but the API is down. If that fails, try `ollama serve` yourself once, then fall back to Cursor handoff.
+12. **Before any pipeline** — tell the user the dump + classify step may take a **few minutes** for a large mailbox (you’re reading every thread yourself). Run with `PYTHONUNBUFFERED=1` so any progress output streams. Prefer keeping the command in the foreground so they can see status.
+13. **No API key, no local model** — classification is you, working through the thread dump in this session. There is nothing to install or configure for it.
 
 ---
 
@@ -85,8 +86,6 @@ Notes for you (not a quiz for the user): `before:` is exclusive (day after inclu
 **If LinkedIn:**
 
 - LinkedIn name **only if different** from full name (must match `FROM` when *they* send). If same, skip — config falls back to full name.
-
-**Classification:** do **not** ask. Use `auto` unless they bring up backend/model themselves.
 
 ### Confirm summary (required before writes)
 
@@ -131,15 +130,19 @@ gmail:
 
 linkedin:
   display_name: "…"   # same as participant.name unless they gave a different LinkedIn name
-
-classification:
-  backend: auto
-  ollama:
-    base_url: "http://127.0.0.1:11434"
-    model: "qwen2.5:14b"
 ```
 
-Omit or leave placeholder blocks only if a source was not selected — still fine to include both with the gathered fields. Keep `classification.backend: auto` unless the user chose otherwise.
+Omit or leave placeholder blocks only if a source was not selected — still fine to include both with the gathered fields.
+
+Then, once (skip if `.venv/` already exists), build the pinned virtualenv from repo root:
+
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Every pipeline command in this skill uses `.venv/bin/python3` (never a bare `python3`) so both sources run on the same pinned interpreter and dependency set.
 
 Then start the **first selected source** (Gmail if selected, else LinkedIn).
 
@@ -147,12 +150,12 @@ Then start the **first selected source** (Gmail if selected, else LinkedIn).
 
 ## Per-source loop
 
-For **each** selected source, run two stages in order. Do not start the next source until the current source’s processing has finished (summary CSV exists, or classify handoff applied).
+For **each** selected source, run two stages in order. Do not start the next source until the current source’s processing has finished (summary CSV exists).
 
 ```
 Source N:
   Turn A — Extraction   (human gates; wait)
-  Turn B — Processing   (pipeline + classify if needed → point to that source’s summary)
+  Turn B — Processing   (pipeline → you classify → summary)
 Source N+1:
   …
 ```
@@ -209,22 +212,20 @@ Typical contents: `Takeout/Mail/<label>.mbox`. **Wait** until that folder exists
 
 ## Gmail — Turn B: Processing (if selected)
 
-Tell the user this may take a **few minutes** (dump + classify). Then you run (unbuffered so the status bar streams):
+Tell the user this may take a **few minutes** (dump, then you read and classify each thread). Then you run (unbuffered so any progress output streams):
 
 ```bash
 cd gmail
-pip install -r requirements.txt
-PYTHONUNBUFFERED=1 python3 run_gmail_pipeline.py
-# --backend ollama|cursor   if needed
-# --all-dates               if Takeout dates fall outside search_window
+PYTHONUNBUFFERED=1 ../.venv/bin/python3 run_gmail_pipeline.py
+# --all-dates   if Takeout dates fall outside search_window
 ```
 
 With **one** folder in `takeout_extracts/`, no path argument is needed. If several, pass the folder path.
 
-If the run prints an **agent handoff**, classify **this source only** (see [Classification handoff](#classification-handoff)), then apply using the **`--emails-dir` path the pipeline printed** (bare `apply_decisions.py` fails without it):
+The run stops after printing **classification instructions** — classify **this source only** (see [Classification](#classification)), then apply using the **`--emails-dir` path the pipeline printed** (bare `apply_decisions.py` fails without it):
 
 ```bash
-cd gmail && python3 scripts/apply_decisions.py --emails-dir takeout_extracts/<takeout>/…/<label>_emails
+cd gmail && ../.venv/bin/python3 scripts/apply_decisions.py --emails-dir takeout_extracts/<takeout>/…/<label>_emails
 ```
 
 **Point them to Gmail outputs now** (don’t wait for LinkedIn):
@@ -279,15 +280,13 @@ Tell the user this may take a **few minutes**. Then you run:
 
 ```bash
 cd linkedin
-pip install -r requirements.txt
-PYTHONUNBUFFERED=1 python3 run_linkedin_pipeline.py
-# --backend ollama|cursor   if needed
+PYTHONUNBUFFERED=1 ../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
-If the run prints an **agent handoff**, classify **this source only** (see [Classification handoff](#classification-handoff)), then:
+The run stops after printing **classification instructions** — classify **this source only** (see [Classification](#classification)), then:
 
 ```bash
-cd linkedin && python3 scripts/apply_decisions.py
+cd linkedin && ../.venv/bin/python3 scripts/apply_decisions.py
 ```
 
 **Point them to LinkedIn outputs now:**
@@ -302,24 +301,20 @@ Then → [Final wrap-up](#final-wrap-up).
 
 ---
 
-## Classification handoff
+## Classification
 
-Pipelines use **Ollama** when reachable (`classification.backend: auto`). If Ollama is installed but not running, the pipeline tries `ollama serve` automatically before falling back.
-
-Only when the **current** source’s run asks for agent handoff:
+Every run needs you to classify — there is no local model or API step in between. When the pipeline prints its classification instructions:
 
 1. Read every `===== THREAD #… =====` or `===== CONV #… =====` block in that source’s dump:
    - Gmail: `gmail/analysis/threads_dump.txt`
    - LinkedIn: `linkedin/analysis/threads_dump.txt`
 2. Apply [docs/CLASSIFICATION_CRITERIA.md](../../../docs/CLASSIFICATION_CRITERIA.md) (real person + one or more job opportunities; unsure → **exclude**).
 3. Write one JSON object per thread to that source’s `analysis/decisions.jsonl` (`source`: `"gmail"` or `"linkedin"`).
-4. Run that source’s `apply_decisions.py`:
-   - **Gmail:** must pass `--emails-dir` (path from pipeline handoff printout).
-   - **LinkedIn:** `cd linkedin && python3 scripts/apply_decisions.py` is enough.
+4. Run that source’s `apply_decisions.py` (always via `.venv/bin/python3`):
+   - **Gmail:** must pass `--emails-dir` (path from the pipeline’s printout).
+   - **LinkedIn:** `cd linkedin && ../.venv/bin/python3 scripts/apply_decisions.py` is enough.
 
-Optional local LLM setup (user-facing): install from https://ollama.com, then `ollama serve` and `ollama pull qwen2.5:14b`.
-
-### Classification prompts (handoff only)
+### Classification prompts
 
 - Real person about **one or more job opportunities**? If unsure → **exclude**.
 - Recruiter / hiring manager / referrer, or automated digest / careers marketing?

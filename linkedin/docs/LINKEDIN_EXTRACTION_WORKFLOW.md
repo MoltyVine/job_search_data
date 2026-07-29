@@ -14,7 +14,7 @@ End-to-end process to extract **recruiter / job-opportunity LinkedIn message con
 | **2. LinkedIn export** | Participant | Request "Download your data" archive with Messages |
 | **3. Place data** | Participant | Unzip export into `linkedin/data/` |
 | **4. Configure** | Participant or helper | Fill in repo-root `config/participant.yaml` (shared with Gmail) |
-| **5. Prep & classify** | Cursor / command line | Run pipeline prep → read threads → build filtered outputs |
+| **5. Prep & classify** | Claude Code / command line | Run pipeline prep → read threads → build filtered outputs |
 | **6. Review** | Participant | Spot-check summary CSV; compare with Gmail counts |
 
 ---
@@ -131,20 +131,23 @@ Omit nothing critical: always set `search_window`. Fill both `gmail` and `linked
 
 ## Phase 5 — Prep & classify
 
-Classification is **conversation-based**: dump threads, then classify with **Ollama** (default when available) or **Cursor agent**. Rules: [classification_criteria.md](classification_criteria.md) → [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md).
+Classification is **conversation-based**: dump threads, then the Claude Code agent reads them and classifies directly — no local model or API key. Rules: [classification_criteria.md](classification_criteria.md) → [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md).
 
 ### 5.1 Install dependencies
 
+From the repo root, build the pinned venv once (see root [README.md](../../README.md) → Requirements):
+
 ```bash
-cd linkedin
-python3 -m pip install -r requirements.txt
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
 ### 5.2 Run the pipeline
 
 ```bash
-python3 run_linkedin_pipeline.py
-# optional: --backend ollama|cursor
+cd linkedin
+../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
 ```
@@ -152,13 +155,13 @@ data/…/messages.csv
         │
         ▼  scripts/stats.py
         ▼  scripts/dump_threads.py   → analysis/threads_dump.txt
-        ▼  scripts/classify_threads.py → analysis/decisions.jsonl  (or Cursor handoff)
+        ▼  scripts/classify_threads.py → prints instructions → you classify → analysis/decisions.jsonl
         ▼  scripts/apply_decisions.py  → output/latest/ → runs/<timestamp>/
 ```
 
-### 5.3 Cursor backend only
+### 5.3 Classifying
 
-If Ollama is unavailable and you choose Cursor: follow the agent handoff from `classify_threads.py` (or the **`job-search-extraction`** skill), write `analysis/decisions.jsonl`, then `python3 scripts/apply_decisions.py`.
+Follow the instructions printed by `classify_threads.py` (or the **`job-search-extraction`** skill): read `analysis/threads_dump.txt`, apply the criteria, write `analysis/decisions.jsonl`, then `../.venv/bin/python3 scripts/apply_decisions.py`.
 
 ### 5.4 Classification types
 
@@ -183,7 +186,7 @@ See shared criteria. Types include `agency_recruiter`, `inhouse_recruiter`, `hir
 Re-run prep after config changes:
 
 ```bash
-python3 run_linkedin_pipeline.py --skip-stats   # or full re-run
+../.venv/bin/python3 run_linkedin_pipeline.py --skip-stats   # or full re-run
 ```
 
 ---
@@ -205,7 +208,7 @@ Invoke the **`job-search-extraction`** skill for interview → config → Linked
 | Outbound count is 0 | Fix `linkedin.display_name` — must match `FROM` when you send |
 | Keyword pre-screen much lower than expected | Normal if window is narrow or job-search was mostly email |
 | Multiline message parsing errors | Use provided scripts (they use Python `csv` module) |
-| `ModuleNotFoundError: yaml` | `pip install -r requirements.txt` |
+| `ModuleNotFoundError: yaml` | Not using the pinned venv — run `.venv/bin/pip install -r requirements.txt` from the repo root, then invoke scripts via `.venv/bin/python3` |
 | threads_dump.txt huge | Expected — classification is per-conversation, not per-message |
 
 ---
@@ -231,9 +234,9 @@ Phase 4 — Configure
 [ ] linkedin.display_name verified
 
 Phase 5 — Prep & classify
-[ ] pip install -r requirements.txt
+[ ] .venv/bin/pip install -r requirements.txt (from repo root)
 [ ] run_linkedin_pipeline.py completed
-[ ] threads_dump.txt reviewed / classified via Cursor
+[ ] threads_dump.txt reviewed / classified in this session
 [ ] output/latest/recruiter_conversations_summary.md produced
 
 Phase 6 — Review
