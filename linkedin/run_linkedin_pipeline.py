@@ -29,6 +29,12 @@ def main() -> None:
         help="Directory with Complete_LinkedInDataExport_* folder",
     )
     parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument(
+        "--backend",
+        choices=["agent", "openrouter"],
+        default=None,
+        help="Classification backend override",
+    )
     parser.add_argument("--skip-stats", action="store_true")
     parser.add_argument("--skip-dump", action="store_true")
     parser.add_argument("--skip-classify", action="store_true")
@@ -51,7 +57,10 @@ def main() -> None:
             str(SCRIPTS / "classify_threads.py"),
             "--analysis-dir",
             str(ANALYSIS),
+            *config_flag,
         ]
+        if args.backend:
+            classify_cmd.extend(["--backend", args.backend])
         run(classify_cmd)
 
     decisions = ANALYSIS / "decisions.jsonl"

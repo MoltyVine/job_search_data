@@ -105,3 +105,30 @@ def participant_name_patterns(config: dict | None = None) -> str:
     return "|".join(parts)
 
 
+DEFAULT_CLASSIFICATION = {
+    "backend": "agent",
+    "openrouter": {
+        "model": "anthropic/claude-haiku-4.5",
+        "temperature": 0.1,
+        "timeout_s": 180,
+    },
+    "max_chars_per_thread_msg": 1200,
+}
+
+
+def classification_settings(config: dict | None = None) -> dict:
+    """Return classification block merged over defaults."""
+    cfg = config or load_participant_config()
+    block = cfg.get("classification")
+    if not isinstance(block, dict):
+        block = {}
+    return {
+        "backend": block.get("backend") or DEFAULT_CLASSIFICATION["backend"],
+        "max_chars_per_thread_msg": block.get("max_chars_per_thread_msg")
+        or DEFAULT_CLASSIFICATION["max_chars_per_thread_msg"],
+        "openrouter": {
+            **DEFAULT_CLASSIFICATION["openrouter"],
+            **(block.get("openrouter") or {}),
+        },
+    }
+

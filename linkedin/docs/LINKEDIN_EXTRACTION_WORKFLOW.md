@@ -131,7 +131,7 @@ Omit nothing critical: always set `search_window`. Fill both `gmail` and `linked
 
 ## Phase 5 — Prep & classify
 
-Classification is **conversation-based**: dump threads, then the Claude Code agent reads them and classifies directly — no local model or API key. Rules: [classification_criteria.md](classification_criteria.md) → [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md).
+Classification is **conversation-based**: dump threads, then either the Claude Code agent reads them and classifies directly (`agent` backend, default — no local model, no API key), or `--backend openrouter` classifies automatically for a large export (needs `OPENROUTER_API_KEY`, sends thread text to OpenRouter). Rules: [classification_criteria.md](classification_criteria.md) → [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md).
 
 ### 5.1 Install dependencies
 

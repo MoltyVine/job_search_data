@@ -28,13 +28,14 @@ Never invoke a bare `python3`/`pip` on a `gmail/` or `linkedin/` script; always 
 - Loader: `common/participant_config.py`
 - Shape: `participant:` + `gmail:` / `linkedin:`
 - Criteria: `docs/CLASSIFICATION_CRITERIA.md`
-- Classifier: no local model or API key — the Claude Code agent running the pipeline reads each source's `analysis/threads_dump.txt` directly and writes `analysis/decisions.jsonl` itself
+- Classifier: `classification.backend` in `participant.yaml`, `agent` (default) or `openrouter`. `agent` — the Claude Code agent running the pipeline reads each source's `analysis/threads_dump.txt` directly and writes `analysis/decisions.jsonl` itself; no network call, no API key. `openrouter` — opt-in, for high-volume runs; sends thread text to OpenRouter, needs `OPENROUTER_API_KEY`
 
 ## Gmail
 
 - Guide: `gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md`
 - Pipeline: `gmail/run_gmail_pipeline.py`
 - Skill: `job-search-extraction`
+- **Multiple accounts:** run the pipeline once per Gmail account with `--account <label>` (keeps `analysis/<label>/` and `output/<label>/` separate), then `gmail/scripts/merge_account_summaries.py` for one combined CSV. `gmail.my_emails` in `participant.yaml` is shared across every account (any address that's "you").
 
 ## LinkedIn
 
@@ -48,7 +49,7 @@ Never invoke a bare `python3`/`pip` on a `gmail/` or `linkedin/` script; always 
 - Always set `participant.search_window` (inclusive start/end) in shared config — the skill asks; do not assume a year
 - Classification unit: Gmail `X-GM-THRID` / LinkedIn `CONVERSATION ID`
 - Keep Gmail and LinkedIn work in their respective directories
-- Message content never leaves this session — no third-party API calls for classification
+- Message content stays in this session unless the user opts into the `openrouter` classification backend — never enable it without asking first
 
 ## No AI co-authors
 

@@ -22,6 +22,10 @@ cd linkedin
 ../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
+## Classification backend
+
+`agent` (default, in this session, no API key) or `openrouter` (opt-in, automated, needs `OPENROUTER_API_KEY`) — see root [README.md](../README.md) → Classification of conversations, or pass `--backend openrouter` / set `classification.backend` in `participant.yaml`.
+
 ## Full workflow
 
 [docs/LINKEDIN_EXTRACTION_WORKFLOW.md](docs/LINKEDIN_EXTRACTION_WORKFLOW.md)
@@ -48,5 +52,5 @@ linkedin/
 | `run_linkedin_pipeline.py` | stats → dump → classify → apply |
 | `scripts/stats.py` | Keyword pre-screen (sanity only) |
 | `scripts/dump_threads.py` | Thread dump |
-| `scripts/classify_threads.py` | Prints classification instructions for the agent |
+| `scripts/classify_threads.py` | Prints agent instructions, or classifies via `--backend openrouter` |
 | `scripts/apply_decisions.py` | Decisions → output CSVs/md |

@@ -14,12 +14,27 @@ participant:
     end: "YYYY-MM-DD"     # inclusive — replace with your end
 
 # One block per data source — add new keys as sources are added.
+# List every address across every Gmail account you'll process — run_gmail_pipeline.py
+# handles one account's Takeout export per run (see gmail/README.md → Multiple accounts),
+# but this list is shared across all of them so "is this me?" detection works everywhere.
 gmail:
   my_emails:
     - jane.doe@gmail.com
+    # - jane.doe.oldwork@gmail.com
 
 linkedin:
   display_name: "Jane Doe"   # LinkedIn FROM when you send; omit if same as participant.name
+
+# Classification backend — see docs/CLASSIFICATION_CRITERIA.md.
+# agent (default): the Claude Code agent running the pipeline classifies inline —
+#   no network call, no API key, but doesn't scale well past a few hundred threads.
+# openrouter (opt-in): for high-volume runs — sends each thread's text to OpenRouter
+#   for automated classification. Requires OPENROUTER_API_KEY in your environment
+#   (never put it in this file). Check openrouter.ai/models for current model slugs.
+classification:
+  backend: agent          # agent | openrouter
+  openrouter:
+    model: "anthropic/claude-haiku-4.5"
 
 # Future example (not implemented yet):
 # sms:

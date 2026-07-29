@@ -52,6 +52,14 @@ Re-run the interview in **job-search-extraction**, or from repo root:
 cp config/participant.example.yaml config/participant.yaml
 ```
 
+## Multiple Gmail accounts: second run overwrote the first
+
+Both runs used the same `analysis/`/`output/` — re-run each account with its own `--account <label>` (see SKILL.md → Gmail Turn B). Existing `analysis/`/`output/` from a run made without `--account` stay where they are; move them under a label subfolder if you want them included in a later merge.
+
+## Classification backend: OPENROUTER_API_KEY not set
+
+Only relevant if the user opted into `--backend openrouter` / `classification.backend: openrouter`. Either export the key (`export OPENROUTER_API_KEY=sk-or-...`) or drop back to the default `agent` backend — never put the key in `config/participant.yaml`.
+
 ## False positives in output
 
 1. Open `gmail/output/latest/recruiter_conversations_report.csv` or LinkedIn `output/latest/` summary
