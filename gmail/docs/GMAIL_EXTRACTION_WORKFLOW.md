@@ -12,7 +12,7 @@ End-to-end process to extract **recruiter / job-opportunity email conversations*
 | **1. Prepare**              | Participant           | Create Gmail label; confirm repo-root config (see README)          |
 | **2. Gmail search & label** | Participant           | Search, then select-all + label each results page                  |
 | **3. Google Takeout**       | Participant           | Export labeled mail as `.mbox`                                     |
-| **4. Process**              | Cursor / command line | Run Python pipeline → filtered mbox + audit CSV                    |
+| **4. Process**              | Claude Code / command line | Run Python pipeline, then classify each thread → filtered mbox + audit CSV |
 | **5. Review**               | Participant           | Spot-check `recruiter_conversations_report.csv`                    |
 
 ---
@@ -88,18 +88,42 @@ is:read after:2025/1/1 before:2026/1/2 (job OR role OR position OR recruit*) -di
 
 ### 4.1 Install dependencies
 
+From the repo root, build the pinned venv once (see root [README.md](../../README.md) → Requirements):
+
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Then run the pipeline with that same interpreter:
+
 ```bash
 cd gmail
-python3 -m pip install -r requirements.txt
-python3 run_gmail_pipeline.py
-# optional: --backend ollama|cursor   --all-dates
+../.venv/bin/python3 run_gmail_pipeline.py
+# optional: --all-dates
 ```
 
 With one folder under `takeout_extracts/`, no path argument is needed. If several exist:
 
 ```bash
-python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-YYYYMMDD/
 ```
+
+**Several Gmail accounts to review?** Google Takeout only exports one account at a time, so repeat **all** of Phase 1–4 once per account (its own label, its own search, its own Takeout export), and tag each pipeline run with `--account <label>`:
+
+```bash
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-personal/ --account personal
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-oldwork/ --account oldwork
+```
+
+This keeps `analysis/<label>/` and `output/<label>/` separate per account so the second run doesn’t overwrite the first. `gmail.my_emails` in `participant.yaml` stays one shared list across every account — it’s just used to detect "is this me?" in any thread. Once every account has a run:
+
+```bash
+../.venv/bin/python3 scripts/merge_account_summaries.py
+```
+
+writes `gmail/output/all_accounts_summary.csv` — every account’s summary rows combined, tagged with an `Account` column.
 
 ### 4.2 What the pipeline does
 
@@ -113,7 +137,7 @@ takeout …/label.mbox
         analysis/threads_dump.txt + threads.json
         │
         ▼  scripts/classify_threads.py
-        analysis/decisions.jsonl   (Ollama)  OR  Cursor handoff
+        prints instructions → you classify → analysis/decisions.jsonl
         │
         ▼  scripts/apply_decisions.py
         output/latest/ → runs/<timestamp>/
@@ -122,7 +146,7 @@ takeout …/label.mbox
           recruiter_conversations_summary.csv
 ```
 
-**Classification:** include if a **real person** discusses **one or more job opportunities**. Shared rules: [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md). Backend: Ollama when available, else prompted Cursor agent (`--backend` to force).
+**Classification:** include if a **real person** discusses **one or more job opportunities**. Shared rules: [docs/CLASSIFICATION_CRITERIA.md](../../docs/CLASSIFICATION_CRITERIA.md). By default (`agent` backend) the pipeline stops after the dump and prints instructions; the Claude Code agent reads `analysis/threads_dump.txt` and writes `analysis/decisions.jsonl` directly — no local model or API key involved. For a large mailbox, pass `--backend openrouter` (or set `classification.backend: openrouter` in `participant.yaml`) to classify automatically instead — needs `OPENROUTER_API_KEY`, and sends thread text to OpenRouter.
 
 ### 4.3 Outputs
 
@@ -143,7 +167,7 @@ takeout …/label.mbox
 
 ```bash
 cd gmail
-python3 scripts/apply_decisions.py --emails-dir takeout_extracts/.../label_emails/
+../.venv/bin/python3 scripts/apply_decisions.py --emails-dir takeout_extracts/.../label_emails/
 ```
 
 ---
@@ -161,10 +185,11 @@ Invoke the **`job-search-extraction`** skill for interview → config → labeli
 | Problem | Fix |
 |---------|-----|
 | `No takeout folders` / multiple | Put one unzip under `takeout_extracts/`, or pass the folder path |
-| Ollama not reachable | `ollama serve` + `ollama pull …`, or `--backend cursor` |
 | Empty dump (0 threads) | Window may not match Takeout dates — use `--all-dates` or fix `search_window` |
 | `Missing participant.yaml` | `cp config/participant.example.yaml config/participant.yaml` |
-| `ModuleNotFoundError: yaml` | `pip install -r requirements.txt` |
+| `ModuleNotFoundError: yaml` | Not using the pinned venv — run `.venv/bin/pip install -r requirements.txt` from the repo root, then invoke scripts via `.venv/bin/python3` |
+| Second Gmail account’s run overwrote the first | Re-run both with `--account <label>` (see §4.1) — without it, every account shares the same `analysis/`/`output/` |
+| `Backend 'openrouter' requested but OPENROUTER_API_KEY is not set` | Export the key, or drop `--backend openrouter` / `classification.backend` to use the default `agent` backend instead |
 
 ---
 
@@ -186,8 +211,8 @@ Phase 3 — Takeout
 [ ] Unzipped folder under gmail/takeout_extracts/
 
 Phase 4 — Process
-[ ] pip install -r requirements.txt
-[ ] run_gmail_pipeline.py completed (Ollama or Cursor decisions applied)
+[ ] .venv/bin/pip install -r requirements.txt (from repo root)
+[ ] run_gmail_pipeline.py completed and decisions applied
 
 Phase 5 — Review
 [ ] Spot-checked gmail/output/latest/recruiter_conversations_summary.csv

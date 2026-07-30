@@ -1,8 +1,9 @@
 """Legacy / optional Gmail prefilter helpers (header/subject heuristics).
 
-Primary classification is LLM- or Cursor-based via scripts/dump_threads.py →
-classify_threads.py → apply_decisions.py. This module remains for optional
-noise prefilters and shared header helpers — not the source of truth.
+Primary classification happens in the Claude Code agent via
+scripts/dump_threads.py → classify_threads.py → apply_decisions.py. This
+module remains for optional noise prefilters and shared header helpers —
+not the source of truth.
 """
 
 import re

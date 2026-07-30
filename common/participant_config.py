@@ -106,10 +106,9 @@ def participant_name_patterns(config: dict | None = None) -> str:
 
 
 DEFAULT_CLASSIFICATION = {
-    "backend": "auto",
-    "ollama": {
-        "base_url": "http://127.0.0.1:11434",
-        "model": "qwen2.5:14b",
+    "backend": "agent",
+    "openrouter": {
+        "model": "anthropic/claude-haiku-4.5",
         "temperature": 0.1,
         "timeout_s": 180,
     },
@@ -123,13 +122,13 @@ def classification_settings(config: dict | None = None) -> dict:
     block = cfg.get("classification")
     if not isinstance(block, dict):
         block = {}
-    out = {
+    return {
         "backend": block.get("backend") or DEFAULT_CLASSIFICATION["backend"],
         "max_chars_per_thread_msg": block.get("max_chars_per_thread_msg")
         or DEFAULT_CLASSIFICATION["max_chars_per_thread_msg"],
-        "ollama": {
-            **DEFAULT_CLASSIFICATION["ollama"],
-            **(block.get("ollama") or {}),
+        "openrouter": {
+            **DEFAULT_CLASSIFICATION["openrouter"],
+            **(block.get("openrouter") or {}),
         },
     }
-    return out
+

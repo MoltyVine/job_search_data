@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify LinkedIn threads via Ollama or print Cursor-agent handoff."""
+"""Classify LinkedIn conversations: agent instructions (default) or the openrouter backend."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ REPO_ROOT = LINKEDIN_ROOT.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(LINKEDIN_ROOT))
 
-from common.classification.backend import resolve_backend  # noqa: E402
-from common.classification.classify import classify_threads_ollama  # noqa: E402
+from common.classification.backend import make_openrouter_client, resolve_backend  # noqa: E402
+from common.classification.classify import classify_threads_openrouter  # noqa: E402
 from common.classification.dump_format import DumpMessage, DumpThread  # noqa: E402
 from common.participant_config import (  # noqa: E402
     classification_settings,
@@ -88,20 +88,19 @@ def load_threads_from_dump(dump_path: Path, meta_path: Path) -> list[DumpThread]
     return threads
 
 
-def print_cursor_handoff(analysis_dir: Path) -> None:
+def print_agent_instructions(analysis_dir: Path) -> None:
     print(
-        "\n=== Cursor agent handoff (LinkedIn) ===\n"
-        f"1. Open Cursor in the repo root.\n"
-        f"2. Invoke skill: job-search-extraction (classify handoff)\n"
-        f"3. Classify every CONV block in:\n"
-        f"     {analysis_dir / 'threads_dump.txt'}\n"
-        f"4. Follow docs/CLASSIFICATION_CRITERIA.md\n"
-        f"5. Write decisions to:\n"
-        f"     {analysis_dir / 'decisions.jsonl'}\n"
-        f"   (one JSON object per line: thread_id, include, reason, company,\n"
-        f"    position_title, recruiter_type, other_party, source=\"linkedin\")\n"
-        f"6. Then run:\n"
-        f"     cd linkedin && python3 scripts/apply_decisions.py\n"
+        "\n=== Classification needed (LinkedIn) ===\n"
+        "Read every '===== CONV #... =====' block in:\n"
+        f"  {analysis_dir / 'threads_dump.txt'}\n"
+        "Apply docs/CLASSIFICATION_CRITERIA.md (real person + one or more job "
+        "opportunities; unsure -> exclude).\n"
+        "Write one JSON object per conversation to:\n"
+        f"  {analysis_dir / 'decisions.jsonl'}\n"
+        "Keys: thread_id, include, reason, company, position_title, "
+        'recruiter_type, other_party, source="linkedin".\n'
+        "Then run:\n"
+        f"  cd linkedin && {sys.executable} scripts/apply_decisions.py\n"
     )
 
 
@@ -111,31 +110,33 @@ def main() -> None:
     parser.add_argument("--analysis-dir", type=Path, default=LINKEDIN_ROOT / "analysis")
     parser.add_argument(
         "--backend",
-        choices=["auto", "ollama", "cursor"],
+        choices=["agent", "openrouter"],
         default=None,
+        help="Override classification.backend from participant.yaml",
     )
     args = parser.parse_args()
 
-    cfg = load_participant_config(args.config)
-    settings = classification_settings(cfg)
     analysis_dir = args.analysis_dir
     dump_path = analysis_dir / "threads_dump.txt"
     meta_path = analysis_dir / "threads.json"
     if not dump_path.exists() or not meta_path.exists():
         raise SystemExit(f"Missing dump files in {analysis_dir}. Run dump_threads.py first.")
 
+    cfg = load_participant_config(args.config)
     backend = resolve_backend(args.backend, cfg)
-    if backend == "cursor":
-        print_cursor_handoff(analysis_dir)
+    if backend == "agent":
+        print_agent_instructions(analysis_dir)
         return
 
-    threads = load_threads_from_dump(dump_path, meta_path)
+    settings = classification_settings(cfg)
     max_chars = int(settings.get("max_chars_per_thread_msg") or 1200)
-    classify_threads_ollama(
+    threads = load_threads_from_dump(dump_path, meta_path)
+    client = make_openrouter_client(cfg)
+    classify_threads_openrouter(
         threads,
         source="linkedin",
         store_path=analysis_dir / "decisions.jsonl",
-        config=cfg,
+        client=client,
         max_chars_per_msg=max_chars,
     )
 

@@ -4,15 +4,24 @@ Extract recruiter / job-opportunity **email conversations** from a Google Takeou
 
 ## Quick start
 
-```bash
-cp config/participant.example.yaml config/participant.yaml
-# edit: participant.*, gmail.my_emails, classification.*
+Run from the repo root first (see root [README.md](../README.md) → Requirements) to build the pinned `.venv/`:
 
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+cp config/participant.example.yaml config/participant.yaml
+# edit: participant.*, gmail.my_emails
+```
+
+Then, using that same venv:
+
+```bash
 cd gmail
-pip install -r requirements.txt
 # put unzipped takeout under takeout_extracts/, then:
-python3 run_gmail_pipeline.py
-# --backend ollama|cursor  --all-dates
+../.venv/bin/python3 run_gmail_pipeline.py
+# --all-dates
 ```
 
 **Outputs** under `gmail/output/latest/` (each run also kept in `gmail/output/runs/<timestamp>/`):
@@ -20,6 +29,27 @@ python3 run_gmail_pipeline.py
 - `recruiter_conversations.mbox`
 - `recruiter_conversations_report.csv`
 - `recruiter_conversations_summary.csv`
+
+## Multiple accounts
+
+Google Takeout exports one account at a time, so process each Gmail account as its own run, tagged with `--account <label>`:
+
+```bash
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-personal/ --account personal
+../.venv/bin/python3 run_gmail_pipeline.py takeout_extracts/takeout-oldwork/ --account oldwork
+```
+
+This keeps `analysis/<label>/` and `output/<label>/` separate per account instead of the second run overwriting the first. `gmail.my_emails` in `participant.yaml` is one shared list across every account. Once every account has a run:
+
+```bash
+../.venv/bin/python3 scripts/merge_account_summaries.py
+```
+
+writes `gmail/output/all_accounts_summary.csv` combining every account’s summary rows, tagged with an `Account` column.
+
+## Classification backend
+
+`agent` (default, in this session, no API key) or `openrouter` (opt-in, automated, needs `OPENROUTER_API_KEY`) — see root [README.md](../README.md) → Classification of conversations, or pass `--backend openrouter` / set `classification.backend` in `participant.yaml`.
 
 ## Full workflow
 
@@ -34,9 +64,10 @@ Guided path: skill **`job-search-extraction`**. Shared criteria: [../docs/CLASSI
 | `run_gmail_pipeline.py` | Orchestrator: split → dump → classify → apply |
 | `split_mbox.py` | `.mbox` → one `.eml` per message |
 | `scripts/dump_threads.py` | Thread dump for classification |
-| `scripts/classify_threads.py` | Ollama or Cursor handoff |
+| `scripts/classify_threads.py` | Prints agent instructions, or classifies via `--backend openrouter` |
 | `scripts/apply_decisions.py` | Decisions → mbox + CSVs |
 | `scripts/validate_takeout.py` | Output consistency check |
+| `scripts/merge_account_summaries.py` | Combine multiple accounts' summary CSVs |
 
 ## Data
 

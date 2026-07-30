@@ -2,9 +2,24 @@
 
 Extract **recruiter / job-opportunity conversations** from Gmail and LinkedIn.
 
-## Set up - Guided with Cursor Skill (recommended)
+## Requirements
 
-1. Clone this repo and open it in **Cursor**.
+- [pyenv](https://github.com/pyenv/pyenv) — this repo pins its Python version in [`.python-version`](.python-version)
+- A virtualenv built from that pinned interpreter (`.venv/`, gitignored)
+
+One-time setup, from the repo root:
+
+```bash
+pyenv install -s "$(cat .python-version)"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Every command below (`run_gmail_pipeline.py`, `run_linkedin_pipeline.py`, and everything under `gmail/scripts/` or `linkedin/scripts/`) should be run with `.venv/bin/python3` rather than a bare `python3` — this keeps every script (Gmail and LinkedIn alike) on the same pinned interpreter and dependency set instead of whatever `python3` happens to resolve to on your `PATH`.
+
+## Set up - Guided with Claude Code Skill (recommended)
+
+1. Clone this repo and open it with **Claude Code**.
 2. Ask the agent to use the **`job-search-extraction`** skill  
    (e.g. “Use job-search-extraction to walk me through setup”).
 
@@ -59,7 +74,7 @@ config/participant.yaml          ← skill writes this (or you edit once)
 | [Gmail](gmail/) | [Workflow](gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md) |
 | [LinkedIn](linkedin/) | [Workflow](linkedin/docs/LINKEDIN_EXTRACTION_WORKFLOW.md) |
 
-Shared rules: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md). Project rule: [`.cursor/rules/job-search-extraction.mdc`](.cursor/rules/job-search-extraction.mdc).
+Shared rules: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md). Project rules: [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
@@ -76,21 +91,27 @@ cp config/participant.example.yaml config/participant.yaml
 | `participant:` | Name + **search window** (inclusive start/end — required; skill asks for yours) |
 | `gmail:` | Your email addresses (`my_emails`) |
 | `linkedin:` | Display name in `messages.csv` `FROM` (omit if same as `participant.name`) |
-| `classification:` | Backend `auto` / `ollama` / `cursor` + Ollama model |
 
 Gmail tip: `before:` is exclusive — for inclusive end `YYYY-MM-DD`, use `before:` of the next day (e.g. end `2026-01-01` → `before:2026/1/2`).
 
 ### Gmail
 
 1. Follow [gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md](gmail/docs/GMAIL_EXTRACTION_WORKFLOW.md) (label → Takeout).
-2. Place unzipped Takeout under `gmail/takeout_extracts/`, then:
+2. Place unzipped Takeout under `gmail/takeout_extracts/`, then (from the repo root, using the venv from [Requirements](#requirements)):
 
 ```bash
 cd gmail
-pip install -r requirements.txt
-python3 run_gmail_pipeline.py
-# optional: --backend ollama|cursor   --all-dates
+../.venv/bin/python3 run_gmail_pipeline.py
+# optional: --all-dates
 ```
+
+**Several Gmail accounts to review?** Each Google Takeout export is per-account, so run the pipeline once per account with `--account <label>` (e.g. `--account personal`, `--account oldwork`) — this keeps each account’s `analysis/` and `output/` separate instead of overwriting the previous account’s run. `gmail.my_emails` in `participant.yaml` stays one shared list across every account. Once every account has a run, combine them:
+
+```bash
+../.venv/bin/python3 scripts/merge_account_summaries.py
+```
+
+writes `gmail/output/all_accounts_summary.csv` — every account’s summary rows in one file, tagged with an `Account` column.
 
 ### LinkedIn
 
@@ -99,29 +120,20 @@ python3 run_gmail_pipeline.py
 
 ```bash
 cd linkedin
-pip install -r requirements.txt
-python3 run_linkedin_pipeline.py
-# optional: --backend ollama|cursor
+../.venv/bin/python3 run_linkedin_pipeline.py
 ```
 
 
-### LLM guided classification of conversations
+### Classification of conversations
 
-Each conversation is included when it was with a **real person** about **one or more job opportunities**.
+Each conversation is included when it was with a **real person** about **one or more job opportunities**. Two backends, set via `classification.backend` in `participant.yaml` or `--backend` on either pipeline:
 
-| Option | What you need | What happens |
-|--------|----------------|--------------|
-| **Local (default when available)** | [Ollama](https://ollama.com) running on your machine | Pipeline calls Ollama automatically (`classification.backend: auto`) |
-| **In Cursor (no API key)** | This repo open in Cursor | If Ollama isn’t running, the skill / agent reads the thread dump and writes decisions — **no separate API key** |
+| Backend | What happens | Needs |
+|---------|--------------|-------|
+| `agent` (default) | Each pipeline dumps threads to `analysis/threads_dump.txt`, then stops and prints instructions — the Claude Code agent running the pipeline reads that dump, applies the criteria, and writes `analysis/decisions.jsonl` itself. | Nothing — no network call, no API key |
+| `openrouter` (opt-in) | The pipeline classifies every thread automatically via [OpenRouter](https://openrouter.ai). Faster for a large mailbox, but thread text leaves this session. | `OPENROUTER_API_KEY` in your environment (never in `participant.yaml`) |
 
-The repo **does not** install a model for you. It checks whether Ollama is reachable, and if the `ollama` binary is installed but the server is down, it tries `ollama serve` automatically. For local runs:
-
-```bash
-ollama serve
-ollama pull qwen2.5:14b   # model name in config; change if you prefer another
-```
-
-If Ollama isn’t installed, you can still finish entirely in Cursor via the skill — no cloud API key is required by this project.
+`agent` is private and free but classifies one thread at a time in conversation, so it doesn’t scale well past a few hundred threads — switch to `openrouter` for bigger mailboxes.
 
 Details: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md).
 
@@ -132,6 +144,7 @@ Details: [docs/CLASSIFICATION_CRITERIA.md](docs/CLASSIFICATION_CRITERIA.md).
 ```
 job_search_data/
 ├── README.md
+├── .python-version            # pyenv pin — see Requirements above
 ├── docs/CLASSIFICATION_CRITERIA.md
 ├── config/
 ├── common/                   # shared config + classification
@@ -139,5 +152,5 @@ job_search_data/
 │   └── output/latest/        # Gmail deliverables
 ├── linkedin/
 │   └── output/latest/        # LinkedIn deliverables
-└── .cursor/skills/job-search-extraction/
+└── .claude/skills/job-search-extraction/
 ```

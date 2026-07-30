@@ -31,7 +31,7 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument(
         "--backend",
-        choices=["auto", "ollama", "cursor"],
+        choices=["agent", "openrouter"],
         default=None,
         help="Classification backend override",
     )
@@ -68,9 +68,9 @@ def main() -> None:
         print("\nSkipped apply.")
     elif not decisions.exists() or decisions.stat().st_size == 0:
         print(
-            "\nNo decisions.jsonl yet — if you chose Cursor backend, "
-            "classify in Cursor then run:\n"
-            "  python3 scripts/apply_decisions.py"
+            "\nNo decisions.jsonl yet — classify the conversations in this session "
+            "(see docs/CLASSIFICATION_CRITERIA.md), then run:\n"
+            f"  {py} scripts/apply_decisions.py"
         )
     else:
         run(

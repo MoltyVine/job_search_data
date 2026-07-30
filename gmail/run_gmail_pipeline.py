@@ -13,7 +13,8 @@ from participant_config import load_participant_config, search_window
 GMAIL_DIR = Path(__file__).resolve().parent
 TAKEOUT_EXTRACTS = GMAIL_DIR / "takeout_extracts"
 SCRIPTS = GMAIL_DIR / "scripts"
-ANALYSIS = GMAIL_DIR / "analysis"
+ANALYSIS_BASE = GMAIL_DIR / "analysis"
+OUTPUT_BASE = GMAIL_DIR / "output"
 
 
 def list_takeout_dirs(extracts_dir: Path = TAKEOUT_EXTRACTS) -> list[Path]:
@@ -75,8 +76,18 @@ def main() -> None:
     parser.add_argument("--mbox", type=Path, help="Explicit source .mbox")
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument(
+        "--account",
+        default=None,
+        help=(
+            "Label for this Gmail account (e.g. 'personal', 'oldwork'). Keeps "
+            "analysis/ and output/ separate per account under analysis/<label>/ "
+            "and output/<label>/. Omit for the single-account layout (analysis/, "
+            "output/ directly)."
+        ),
+    )
+    parser.add_argument(
         "--backend",
-        choices=["auto", "ollama", "cursor"],
+        choices=["agent", "openrouter"],
         default=None,
         help="Classification backend override",
     )
@@ -90,6 +101,9 @@ def main() -> None:
         help="Dump all threads (ignore search_window)",
     )
     args = parser.parse_args()
+
+    analysis_dir = (ANALYSIS_BASE / args.account) if args.account else ANALYSIS_BASE
+    output_dir = (OUTPUT_BASE / args.account) if args.account else OUTPUT_BASE
 
     if args.config:
         import participant_config as pc
@@ -107,6 +121,8 @@ def main() -> None:
 
     print("Gmail recruiter extraction pipeline")
     print(f"  Participant: {participant['name']}")
+    if args.account:
+        print(f"  Account:     {args.account}")
     print(f"  Window:      {window_start} → {window_end}")
     print(f"  Takeout:     {takeout_dir}")
     print(f"  Input mbox:  {mbox}")
@@ -128,7 +144,7 @@ def main() -> None:
             "--emails-dir",
             str(emails_dir),
             "--out-dir",
-            str(ANALYSIS),
+            str(analysis_dir),
             *config_flag,
         ]
         if args.all_dates:
@@ -140,22 +156,25 @@ def main() -> None:
             py,
             str(SCRIPTS / "classify_threads.py"),
             "--analysis-dir",
-            str(ANALYSIS),
+            str(analysis_dir),
             *config_flag,
         ]
+        if args.account:
+            classify_cmd.extend(["--account", args.account])
         if args.backend:
             classify_cmd.extend(["--backend", args.backend])
         run_step(classify_cmd)
 
-    # Cursor backend stops after handoff — no decisions yet
-    decisions = ANALYSIS / "decisions.jsonl"
+    # Agent backend stops after printing instructions — no decisions yet
+    decisions = analysis_dir / "decisions.jsonl"
     if args.skip_apply:
         print("\nSkipped apply.")
     elif not decisions.exists() or decisions.stat().st_size == 0:
         print(
-            "\nNo decisions.jsonl yet — if you chose Cursor backend, "
-            "classify in Cursor then run:\n"
-            f"  python3 scripts/apply_decisions.py --emails-dir {emails_dir}"
+            "\nNo decisions.jsonl yet — classify the threads in this session "
+            "(see docs/CLASSIFICATION_CRITERIA.md), then run:\n"
+            f"  {py} scripts/apply_decisions.py --emails-dir {emails_dir} "
+            f"--analysis-dir {analysis_dir} --output-dir {output_dir}"
         )
     else:
         run_step(
@@ -165,14 +184,14 @@ def main() -> None:
                 "--emails-dir",
                 str(emails_dir),
                 "--analysis-dir",
-                str(ANALYSIS),
+                str(analysis_dir),
                 "--output-dir",
-                str(GMAIL_DIR / "output"),
+                str(output_dir),
                 *config_flag,
             ]
         )
         # Optional consistency check against source mbox when outputs exist
-        latest = GMAIL_DIR / "output" / "latest"
+        latest = output_dir / "latest"
         out_mbox = latest / "recruiter_conversations.mbox"
         out_report = latest / "recruiter_conversations_report.csv"
         if out_mbox.exists() and out_report.exists():

@@ -1,4 +1,4 @@
-"""Classify dump threads with Ollama (shared helper used by source scripts)."""
+"""Classify dump threads via OpenRouter (optional, opt-in backend)."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import sys
 import time
 from pathlib import Path
 
-from .backend import make_ollama_client
 from .dump_format import DumpThread, thread_text_for_llm
+from .openrouter_client import OpenRouterClient
 from .prompt import parse_model_json, system_prompt, user_prompt
 from .schema import ThreadDecision
 from .store import DecisionStore
@@ -56,15 +56,14 @@ def _print_progress(
     sys.stdout.flush()
 
 
-def classify_threads_ollama(
+def classify_threads_openrouter(
     threads: list[DumpThread],
     *,
     source: str,
     store_path: Path,
-    config: dict | None = None,
+    client: OpenRouterClient,
     max_chars_per_msg: int = 1200,
 ) -> dict[str, ThreadDecision]:
-    client = make_ollama_client(config)
     store = DecisionStore(store_path)
     existing = store.load()
     system = system_prompt()
@@ -73,7 +72,7 @@ def classify_threads_ollama(
     already = sum(1 for t in threads if t.thread_id in existing)
     pending = [t for t in threads if t.thread_id not in existing]
 
-    print(f"Ollama model: {client.model}", flush=True)
+    print(f"OpenRouter model: {client.model}", flush=True)
     print(
         f"Threads: {total} total | {already} already decided | {len(pending)} to classify",
         flush=True,

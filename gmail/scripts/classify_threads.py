@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify Gmail threads via Ollama or print Cursor-agent handoff."""
+"""Classify Gmail threads: agent instructions (default) or the openrouter backend."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ REPO_ROOT = GMAIL_ROOT.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(GMAIL_ROOT))
 
-from common.classification.backend import resolve_backend  # noqa: E402
-from common.classification.classify import classify_threads_ollama  # noqa: E402
+from common.classification.backend import make_openrouter_client, resolve_backend  # noqa: E402
+from common.classification.classify import classify_threads_openrouter  # noqa: E402
 from common.classification.dump_format import DumpMessage, DumpThread  # noqa: E402
 from common.participant_config import (  # noqa: E402
     classification_settings,
@@ -80,21 +80,20 @@ def load_threads_from_dump(dump_path: Path, meta_path: Path) -> list[DumpThread]
     return threads
 
 
-def print_cursor_handoff(analysis_dir: Path) -> None:
+def print_agent_instructions(analysis_dir: Path, output_dir: Path) -> None:
     print(
-        "\n=== Cursor agent handoff (Gmail) ===\n"
-        f"1. Open Cursor in the repo root.\n"
-        f"2. Invoke skill: job-search-extraction (classify handoff)\n"
-        f"3. Classify every THREAD block in:\n"
-        f"     {analysis_dir / 'threads_dump.txt'}\n"
-        f"4. Follow docs/CLASSIFICATION_CRITERIA.md\n"
-        f"5. Write decisions to:\n"
-        f"     {analysis_dir / 'decisions.jsonl'}\n"
-        f"   (one JSON object per line: thread_id, include, reason, company,\n"
-        f"    position_title, recruiter_type, other_party, source=\"gmail\")\n"
-        f"6. Then run (use the --emails-dir path from the pipeline output):\n"
-        f"     cd gmail && python3 scripts/apply_decisions.py "
-        f"--emails-dir takeout_extracts/<takeout>/…/<label>_emails\n"
+        "\n=== Classification needed (Gmail) ===\n"
+        "Read every '===== THREAD #... =====' block in:\n"
+        f"  {analysis_dir / 'threads_dump.txt'}\n"
+        "Apply docs/CLASSIFICATION_CRITERIA.md (real person + one or more job "
+        "opportunities; unsure -> exclude).\n"
+        "Write one JSON object per thread to:\n"
+        f"  {analysis_dir / 'decisions.jsonl'}\n"
+        "Keys: thread_id, include, reason, company, position_title, "
+        'recruiter_type, other_party, source="gmail".\n'
+        "Then run (use the --emails-dir path the pipeline printed):\n"
+        f"  cd gmail && {sys.executable} scripts/apply_decisions.py --emails-dir <path> "
+        f"--analysis-dir {analysis_dir} --output-dir {output_dir}\n"
     )
 
 
@@ -103,33 +102,40 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--analysis-dir", type=Path, default=GMAIL_ROOT / "analysis")
     parser.add_argument(
+        "--account",
+        default=None,
+        help="Account label, for the printed apply_decisions.py hint only (see --account on run_gmail_pipeline.py)",
+    )
+    parser.add_argument(
         "--backend",
-        choices=["auto", "ollama", "cursor"],
+        choices=["agent", "openrouter"],
         default=None,
         help="Override classification.backend from participant.yaml",
     )
     args = parser.parse_args()
 
-    cfg = load_participant_config(args.config)
-    settings = classification_settings(cfg)
     analysis_dir = args.analysis_dir
     dump_path = analysis_dir / "threads_dump.txt"
     meta_path = analysis_dir / "threads.json"
     if not dump_path.exists() or not meta_path.exists():
         raise SystemExit(f"Missing dump files in {analysis_dir}. Run dump_threads.py first.")
 
+    cfg = load_participant_config(args.config)
     backend = resolve_backend(args.backend, cfg)
-    if backend == "cursor":
-        print_cursor_handoff(analysis_dir)
+    if backend == "agent":
+        output_dir = (GMAIL_ROOT / "output" / args.account) if args.account else (GMAIL_ROOT / "output")
+        print_agent_instructions(analysis_dir, output_dir)
         return
 
-    threads = load_threads_from_dump(dump_path, meta_path)
+    settings = classification_settings(cfg)
     max_chars = int(settings.get("max_chars_per_thread_msg") or 1200)
-    classify_threads_ollama(
+    threads = load_threads_from_dump(dump_path, meta_path)
+    client = make_openrouter_client(cfg)
+    classify_threads_openrouter(
         threads,
         source="gmail",
         store_path=analysis_dir / "decisions.jsonl",
-        config=cfg,
+        client=client,
         max_chars_per_msg=max_chars,
     )
 

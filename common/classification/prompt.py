@@ -1,4 +1,4 @@
-"""Prompt builders for thread classification."""
+"""Prompt builders for thread classification (used by the openrouter backend)."""
 
 from __future__ import annotations
 
