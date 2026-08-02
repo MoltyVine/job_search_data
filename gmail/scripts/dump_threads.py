@@ -66,6 +66,13 @@ def message_date(msg) -> datetime | None:
         return None
 
 
+def _decode_payload(payload: bytes, charset: str) -> str:
+    try:
+        return payload.decode(charset, errors="replace")
+    except LookupError:
+        return payload.decode("utf-8", errors="replace")
+
+
 def extract_body(msg) -> str:
     plain_parts: list[str] = []
     html_parts: list[str] = []
@@ -83,7 +90,7 @@ def extract_body(msg) -> str:
             if not payload:
                 continue
             charset = part.get_content_charset() or "utf-8"
-            text = payload.decode(charset, errors="replace")
+            text = _decode_payload(payload, charset)
             if ctype == "text/plain":
                 plain_parts.append(text)
             elif ctype == "text/html":
@@ -95,7 +102,7 @@ def extract_body(msg) -> str:
             payload = None
         if payload:
             charset = msg.get_content_charset() or "utf-8"
-            text = payload.decode(charset, errors="replace")
+            text = _decode_payload(payload, charset)
             ctype = (msg.get_content_type() or "").lower()
             if ctype == "text/html":
                 html_parts.append(text)

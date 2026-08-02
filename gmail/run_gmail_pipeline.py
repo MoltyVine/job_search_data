@@ -91,6 +91,12 @@ def main() -> None:
         default=None,
         help="Classification backend override",
     )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Parallel OpenRouter requests (openrouter backend only)",
+    )
     parser.add_argument("--skip-split", action="store_true")
     parser.add_argument("--skip-dump", action="store_true")
     parser.add_argument("--skip-classify", action="store_true")
@@ -163,6 +169,8 @@ def main() -> None:
             classify_cmd.extend(["--account", args.account])
         if args.backend:
             classify_cmd.extend(["--backend", args.backend])
+        if args.concurrency != 1:
+            classify_cmd.extend(["--concurrency", str(args.concurrency)])
         run_step(classify_cmd)
 
     # Agent backend stops after printing instructions — no decisions yet

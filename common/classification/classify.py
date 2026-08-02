@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from .dump_format import DumpThread, thread_text_for_llm
@@ -56,6 +58,53 @@ def _print_progress(
     sys.stdout.flush()
 
 
+def _classify_one(
+    thread: DumpThread,
+    *,
+    source: str,
+    client: OpenRouterClient,
+    system: str,
+    max_chars_per_msg: int,
+) -> ThreadDecision:
+    text = thread_text_for_llm(thread, max_chars_per_msg=max_chars_per_msg)
+    user = user_prompt(text, thread_id=thread.thread_id, source=source)
+    try:
+        raw = client.chat(system, user)
+        decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
+        if decision.reason.startswith("parse_error"):
+            raw = client.chat(system, user + "\n\nReturn ONLY valid JSON with include true or false.")
+            decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
+        # Empty reason often means truncated JSON from oversized prompts —
+        # retry once on a shorter head+tail sample.
+        if not decision.reason.strip() and thread.message_count >= 8:
+            short = thread_text_for_llm(
+                thread, max_chars_per_msg=400, max_messages=8, max_total_chars=5000
+            )
+            raw = client.chat(
+                system,
+                user_prompt(short, thread_id=thread.thread_id, source=source)
+                + "\n\nReturn ONLY valid JSON. include=true only for real-person recruiting.",
+            )
+            decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
+        if decision.reason.startswith("parse_error"):
+            # Minimal retry — force the boolean field
+            raw = client.chat(
+                "Reply with ONLY JSON: "
+                '{"include":true|false,"reason":"...","company":"","position_title":"",'
+                '"recruiter_type":"unknown","other_party":""}',
+                user
+                + "\n\nIs this a real person recruiting the participant about one or more "
+                "job opportunities? include=true only if yes.",
+            )
+            decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
+    except Exception as exc:  # noqa: BLE001 — keep pipeline moving
+        decision = ThreadDecision.parse_error_exclude(thread.thread_id, source, str(exc)[:200])
+
+    if not decision.other_party and thread.other_party:
+        decision.other_party = thread.other_party
+    return decision
+
+
 def classify_threads_openrouter(
     threads: list[DumpThread],
     *,
@@ -63,6 +112,7 @@ def classify_threads_openrouter(
     store_path: Path,
     client: OpenRouterClient,
     max_chars_per_msg: int = 1200,
+    concurrency: int = 1,
 ) -> dict[str, ThreadDecision]:
     store = DecisionStore(store_path)
     existing = store.load()
@@ -74,7 +124,8 @@ def classify_threads_openrouter(
 
     print(f"OpenRouter model: {client.model}", flush=True)
     print(
-        f"Threads: {total} total | {already} already decided | {len(pending)} to classify",
+        f"Threads: {total} total | {already} already decided | {len(pending)} to classify"
+        + (f" | concurrency={concurrency}" if concurrency > 1 else ""),
         flush=True,
     )
     if not pending:
@@ -84,62 +135,54 @@ def classify_threads_openrouter(
 
     started = time.monotonic()
     completed_this_run = 0
+    write_lock = threading.Lock()
 
-    for thread in pending:
-        text = thread_text_for_llm(thread, max_chars_per_msg=max_chars_per_msg)
-        user = user_prompt(text, thread_id=thread.thread_id, source=source)
-        try:
-            raw = client.chat(system, user)
-            decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
-            if decision.reason.startswith("parse_error"):
-                raw = client.chat(system, user + "\n\nReturn ONLY valid JSON with include true or false.")
-                decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
-            # Empty reason often means truncated JSON from oversized prompts —
-            # retry once on a shorter head+tail sample.
-            if not decision.reason.strip() and thread.message_count >= 8:
-                short = thread_text_for_llm(
-                    thread, max_chars_per_msg=400, max_messages=8, max_total_chars=5000
-                )
-                raw = client.chat(
-                    system,
-                    user_prompt(short, thread_id=thread.thread_id, source=source)
-                    + "\n\nReturn ONLY valid JSON. include=true only for real-person recruiting.",
-                )
-                decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
-            if decision.reason.startswith("parse_error"):
-                # Minimal retry — force the boolean field
-                raw = client.chat(
-                    "Reply with ONLY JSON: "
-                    '{"include":true|false,"reason":"...","company":"","position_title":"",'
-                    '"recruiter_type":"unknown","other_party":""}',
-                    user
-                    + "\n\nIs this a real person recruiting the participant about one or more "
-                    "job opportunities? include=true only if yes.",
-                )
-                decision = parse_model_json(raw, thread_id=thread.thread_id, source=source)
-        except Exception as exc:  # noqa: BLE001 — keep pipeline moving
-            decision = ThreadDecision.parse_error_exclude(
-                thread.thread_id, source, str(exc)[:200]
+    def _record(thread: DumpThread, decision: ThreadDecision) -> None:
+        nonlocal completed_this_run
+        with write_lock:
+            store.append(decision)
+            existing[thread.thread_id] = decision
+            completed_this_run += 1
+            done = already + completed_this_run
+            flag = "INCLUDE" if decision.include else "exclude"
+            label = thread.other_party or thread.thread_id[:24]
+            _print_progress(
+                done=done,
+                total=total,
+                flag=flag,
+                label=label,
+                started=started,
+                pending_at_start=len(pending),
+                completed_this_run=completed_this_run,
             )
 
-        if not decision.other_party and thread.other_party:
-            decision.other_party = thread.other_party
-        store.append(decision)
-        existing[thread.thread_id] = decision
-        completed_this_run += 1
-
-        done = already + completed_this_run
-        flag = "INCLUDE" if decision.include else "exclude"
-        label = thread.other_party or thread.thread_id[:24]
-        _print_progress(
-            done=done,
-            total=total,
-            flag=flag,
-            label=label,
-            started=started,
-            pending_at_start=len(pending),
-            completed_this_run=completed_this_run,
-        )
+    if concurrency <= 1:
+        for thread in pending:
+            decision = _classify_one(
+                thread,
+                source=source,
+                client=client,
+                system=system,
+                max_chars_per_msg=max_chars_per_msg,
+            )
+            _record(thread, decision)
+    else:
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = {
+                pool.submit(
+                    _classify_one,
+                    thread,
+                    source=source,
+                    client=client,
+                    system=system,
+                    max_chars_per_msg=max_chars_per_msg,
+                ): thread
+                for thread in pending
+            }
+            for future in as_completed(futures):
+                thread = futures[future]
+                decision = future.result()
+                _record(thread, decision)
 
     # Finish the progress line, then summary
     sys.stdout.write("\n")
