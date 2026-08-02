@@ -114,6 +114,12 @@ def main() -> None:
         default=None,
         help="Override classification.backend from participant.yaml",
     )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Parallel OpenRouter requests (openrouter backend only)",
+    )
     args = parser.parse_args()
 
     analysis_dir = args.analysis_dir
@@ -138,6 +144,7 @@ def main() -> None:
         store_path=analysis_dir / "decisions.jsonl",
         client=client,
         max_chars_per_msg=max_chars,
+        concurrency=args.concurrency,
     )
 
 
